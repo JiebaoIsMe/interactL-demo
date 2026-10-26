@@ -5,7 +5,6 @@ function MainLayout() {
   return (
     <div className="mainlayout">
       <Sidebar />
-
       <main className="main">
         <Outlet />
       </main>
