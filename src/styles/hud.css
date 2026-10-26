@@ -1,0 +1,277 @@
+
+@import url("https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600&family=Share+Tech+Mono&display=swap");
+
+:root {
+  --hud-glass: rgba(148, 163, 184, 0.3);
+  --hud-ink: #0f172a;
+  --hud-accent: #22d3ee;
+  --hud-accent-ink: #083344;
+  --hud-accent-line: #0891b2;
+  --hud-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* Glass surface */
+
+.hud-glass {
+  background: var(--hud-glass);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+
+  color: var(--hud-ink);
+  font: 600 14px "Rajdhani", sans-serif;
+  letter-spacing: 0.05em;
+  -webkit-font-smoothing: antialiased;
+}
+
+.hud-num {
+  font-family: "Share Tech Mono", monospace;
+  letter-spacing: 0;
+}
+
+/* Shared HUD panels */
+
+.hud-zoom,
+.hud-dock-panel {
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.1);
+
+  --btn-bg: rgba(255, 255, 255, 0.25);
+  --btn-hover: rgba(255, 255, 255, 0.5);
+}
+
+.hud-zoom,
+.hud-dock {
+  pointer-events: auto;
+}
+
+/* HUD buttons */
+
+.hud-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  padding: 8px 12px;
+  overflow: hidden;
+
+  background: var(--btn-bg, var(--hud-glass));
+  color: var(--hud-ink);
+  cursor: pointer;
+
+  transition:
+    transform 0.15s var(--hud-ease),
+    background 0.15s var(--hud-ease),
+    opacity 0.2s var(--hud-ease);
+}
+
+button.hud-btn,
+button.hud-btn:hover,
+button.hud-btn:active,
+button.hud-btn:focus,
+button.hud-btn:focus-visible {
+  border: 0;
+  border-radius: 0;
+  appearance: none;
+}
+
+.hud-btn:focus-visible {
+  outline: 2px solid var(--hud-accent-line);
+  outline-offset: -2px;
+}
+
+.hud-btn::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 2px;
+  background: var(--hud-accent-line);
+
+  transform: scaleX(0);
+  transform-origin: left;
+
+  transition: transform 0.2s var(--hud-ease);
+}
+
+.hud-btn:focus-visible::after {
+  transform: scaleX(1);
+}
+
+.hud-btn:active:not(:disabled) {
+  transform: translateY(0) scale(0.94);
+}
+
+.hud-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.hud-btn.primary {
+  background: var(--hud-accent);
+  color: var(--hud-accent-ink);
+}
+
+.hud-btn.warn {
+  background: #fbbf24;
+}
+
+/* Hover behavior */
+
+@media (hover: hover) {
+  .hud-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    background: var(--btn-hover, rgba(255, 255, 255, 0.5));
+  }
+
+  .hud-btn:hover:not(:disabled)::after {
+    transform: scaleX(1);
+  }
+
+  .hud-btn.primary:hover:not(:disabled) {
+    background: #4fe0f3;
+  }
+
+  .hud-btn.warn:hover:not(:disabled) {
+    background: #fcd34d;
+  }
+}
+
+/* Zoom controls */
+
+.hud-zoom {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  z-index: 100;
+
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px;
+}
+
+.hud-zoom .hud-btn {
+  padding: 6px 10px;
+}
+
+.hud-zoom-level {
+  min-width: 40px;
+  text-align: center;
+}
+
+/* Right dock */
+
+.hud-dock {
+  position: absolute;
+  top: 70px;
+  right: 0;
+  z-index: 100;
+
+  transition: transform 0.25s var(--hud-ease);
+}
+
+.hud-dock.collapsed {
+  transform: translateX(100%);
+}
+
+.hud-dock-tab {
+  position: absolute;
+  right: 100%;
+  top: 0;
+  padding: 8px 4px;
+}
+
+.hud-dock-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 160px;
+  padding: 6px;
+}
+
+.hud-dock-panel .hud-btn {
+  justify-content: flex-start;
+}
+
+/* Bottom floating simulation actions */
+
+.hud-actions {
+  position: absolute;
+  left: 50%;
+  bottom: 20px;
+  z-index: 100;
+
+  display: flex;
+  gap: 8px;
+  transform: translateX(-50%);
+}
+
+.hud-actions .hud-btn {
+  flex-direction: column;
+  gap: 2px;
+
+  width: 78px;
+  height: 56px;
+  padding: 0;
+
+  font-size: 13px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.1);
+}
+
+/* Touch devices */
+
+@media (pointer: coarse) {
+  .hud-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
+/* Small screens */
+
+@media (max-width: 600px) {
+  .hud-zoom {
+    top: 10px;
+    left: 10px;
+  }
+
+  .hud-dock {
+    top: 64px;
+  }
+
+  .hud-zoom .hud-label,
+  .hud-dock-panel .hud-label {
+    display: none;
+  }
+
+  .hud-dock-panel {
+    width: auto;
+  }
+
+  .hud-dock-panel .hud-btn {
+    justify-content: center;
+  }
+
+  .hud-actions {
+    left: 10px;
+    right: 10px;
+    bottom: calc(10px + env(safe-area-inset-bottom));
+    transform: none;
+  }
+
+  .hud-actions .hud-btn {
+    flex: 1;
+    width: auto;
+    min-width: 0;
+  }
+}
+
+/* Reduced motion */
+
+@media (prefers-reduced-motion: reduce) {
+  .hud-btn,
+  .hud-btn::after,
+  .hud-dock {
+    transition: none;
+  }
+}

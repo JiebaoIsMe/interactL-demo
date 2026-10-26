@@ -1,4 +1,6 @@
 
+import { Users, Eye, Server, Network } from "lucide-react";
+
 import { useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -8,6 +10,9 @@ import ServerModal from "../modal/ServerModal";
 import ClientModal from "../modal/ClientModal";
 import ObservedClientsModal from "../modal/ObservedClientModal";
 import ObservedClientsNode from "./ObservedClientNode";
+
+import HudButton from "../components/hud-button";
+import { HudDockItems } from "../components/hud-dock";
 
 import { generateClientPositions } from "./nodePositions";
 
@@ -30,14 +35,13 @@ import {
   type ServerSettings,
 } from "../mock-data/server";
 
-// Generate positions once, outside React rendering.
 const positionedClients = generateClientPositions(clientGroups);
 
-const observedPosition = generateClientPositions(
-  [{ id: "observed" }],
-  550,
-  850
-)[0];
+const observedPosition = {
+  id: "observed",
+  x: 100,
+  y: 100 - 30,
+};
 
 type ModalType = "client" | "server" | "observed" | null;
 
@@ -121,11 +125,8 @@ function Node({ simulationState, datasetPartition }: NodeProps) {
   }
 
   function openClientModal(nodeId?: number) {
-    if (nodeId !== undefined) {
-      setSelectedNodeId(nodeId);
-      setObserveNodeSelected(false);
-    }
-
+    setSelectedNodeId(nodeId ?? null);
+    setObserveNodeSelected(false);
     setActiveModal("client");
   }
 
@@ -146,46 +147,31 @@ function Node({ simulationState, datasetPartition }: NodeProps) {
   return (
     <>
       {/* Workspace node toolbar */}
-      {createPortal(
-          <div
-            className="node-toolbar"
-            onMouseDown={(e) => e.stopPropagation()}
-          >
-            <button
-              type="button"
-              onClick={() =>
-                openClientModal(
-                  selectedNodeId ?? clientNodes[0]?.id
-                )
-              }
-            >
-              Clients
-            </button>
+      <HudDockItems>
+        <HudButton
+          icon={Users}
+          label="Clients"
+          onClick={() => openClientModal()}
+        />
 
-            <button
-              type="button"
-              onClick={() => openObservedClientModal()}
-            >
-              Observed Clients
-            </button>
+        <HudButton
+          icon={Eye}
+          label="Observed"
+          onClick={() => openObservedClientModal()}
+        />
 
-            <button
-              type="button"
-              onClick={openServerModal}
-            >
-              Server
-            </button>
+        <HudButton
+          icon={Server}
+          label="Server"
+          onClick={() => openServerModal()}
+        />
 
-            <button
-              type="button"
-              disabled
-              title="Coming soon"
-            >
-              Network
-            </button>
-        </div>,
-        document.body
-      )}
+        <HudButton
+          icon={Network}
+          label="Network"
+          disabled
+        />
+      </HudDockItems>
 
       {/* Central server node*/}
       <ServerNode onOpen={openServerModal} />

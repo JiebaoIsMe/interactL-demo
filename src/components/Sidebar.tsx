@@ -1,37 +1,67 @@
+
 import { useState } from "react";
 import { NavLink } from "react-router";
-import { PanelLeft, Move, LayoutGrid, PanelsTopLeft } from "lucide-react";
+import {
+  PanelLeft,
+  Move,
+  LayoutGrid,
+  PanelsTopLeft,
+} from "lucide-react";
 
 function Sidebar() {
-
   const [isExpanded, setIsExpanded] = useState(false);
 
-  function toggleSidebar() {
-    setIsExpanded(!isExpanded);
-  }
-
   return (
-    <aside className={`sidebar ${isExpanded ? "expanded" : "collapsed"}`}>
-
-      <button onClick={toggleSidebar}>
-        <PanelLeft size={32} />
+    <aside
+      className={`sidebar ${isExpanded ? "expanded" : "collapsed"}`}
+      aria-label="Main sidebar"
+    >
+      <button
+        type="button"
+        className="sidebar-toggle"
+        onClick={() => setIsExpanded((previous) => !previous)}
+        aria-label={isExpanded ? "Collapse sidebar" : "Expand sidebar"}
+        aria-expanded={isExpanded}
+        title={isExpanded ? "Collapse sidebar" : "Expand sidebar"}
+      >
+        <PanelLeft size={22} aria-hidden="true" />
       </button>
 
-      <nav className="sidebar-nav">
-        <NavLink to="/dragndrop" title="Drag & Drop">
-          <Move size={20} />
-          {isExpanded ? <span> Drag & Drop </span>: null}
+      <nav className="sidebar-nav" aria-label="Main navigation">
+        <NavLink
+          to="/workspace"
+          end
+          title="Workspace"
+          aria-label="Workspace"
+          className={({ isActive }) =>
+            `sidebar-item ${isActive ? "active" : ""}`
+          }
+        >
+          <LayoutGrid size={20} aria-hidden="true" />
+          {isExpanded && <span>Workspace</span>}
         </NavLink>
 
-        <NavLink to="/workspace" title="Workspace">
-          <LayoutGrid size={20} />
-          {isExpanded && <span> Workspace </span>}
-        </NavLink>
+        <button
+          type="button"
+          className="sidebar-item"
+          title="Drag & Drop — Coming soon"
+          aria-label="Drag & Drop — Coming soon"
+          disabled
+        >
+          <Move size={20} aria-hidden="true" />
+          {isExpanded && <span>Drag & Drop</span>}
+        </button>
 
-        <NavLink to="/card">
-          <PanelsTopLeft size={20} />
-          {isExpanded && <span> Card </span>}
-        </NavLink>
+        <button
+          type="button"
+          className="sidebar-item"
+          title="Card — Coming soon"
+          aria-label="Card — Coming soon"
+          disabled
+        >
+          <PanelsTopLeft size={20} aria-hidden="true" />
+          {isExpanded && <span>Card</span>}
+        </button>
       </nav>
     </aside>
   );

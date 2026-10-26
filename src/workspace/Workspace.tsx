@@ -1,4 +1,6 @@
 
+import { Focus, Minus, Plus } from "lucide-react";
+
 import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   MouseEvent as ReactMouseEvent,
@@ -6,6 +8,9 @@ import type {
 } from "react";
 
 import Node from "../node/Node";
+
+import HudButton from "../components/hud-button";
+import { HudDock, HudDockProvider } from "../components/hud-dock";
 
 import
   SimulationEngine, {
@@ -258,37 +263,32 @@ function Workspace() {
         className="container"
         onWheel={handleWheel}
       >
-        {/* Workspace controls */}
-        <div
-          className="workspace-controls"
-          onMouseDown={(e) => e.stopPropagation()}
-        >
-          <button
-            type="button"
+        {/* Workspace HUD controls */}
+          <div className="hud-zoom hud-glass">
+          <HudButton
+            icon={Plus}
+            aria-label="Zoom in"
             onClick={() => zoomAtCenter(1)}
-            title="Zoom In"
-          >
-            +
-          </button>
+          />
 
-          <button
-            type="button"
+          <HudButton
+            icon={Minus}
+            aria-label="Zoom out"
             onClick={() => zoomAtCenter(-1)}
-            title="Zoom Out"
-          >
-            −
-          </button>
+          />
 
-          <button
-            type="button"
+          <HudButton
+            icon={Focus}
+            label="Recenter"
             onClick={recenterWorkspace}
-            title="Recenter Workspace"
-          >
-            Recenter
-          </button>
+          />
 
-          <span>{Math.round(zoom * 100)}%</span>
+          <span className="hud-zoom-level hud-num">
+            {Math.round(zoom * 100)}%
+          </span>
         </div>
+
+        <HudDock />
 
         {/* Zoomable and draggable workspace */}
         <div
@@ -323,4 +323,10 @@ function Workspace() {
   );
 }
 
-export default Workspace;
+export default function WorkspaceWithDock() {
+  return (
+    <HudDockProvider>
+      <Workspace />
+    </HudDockProvider>
+  );
+}

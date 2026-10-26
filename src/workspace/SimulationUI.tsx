@@ -3,6 +3,15 @@ import type { Dispatch, SetStateAction } from "react";
 import { createPortal } from "react-dom";
 
 import {
+  Play,
+  Pause,
+  RotateCcw,
+  Eye,
+  Database,
+  ChartNoAxesCombined,
+} from "lucide-react";
+
+import {
   LineChart,
   Line,
   XAxis,
@@ -12,7 +21,10 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-import DatasetDistributionModal from "../modal//DatasetModal";
+import DatasetDistributionModal from "../modal/DatasetModal";
+
+import HudButton from "../components/hud-button";
+import { HudDockItems } from "../components/hud-dock";
 
 import {
   type SimulationState,
@@ -50,65 +62,47 @@ function SimulationUI({simulation, datasetPartition, setDatasetPartition, onStar
   return (
     <>
       {/*Simulation Panel*/}
-      <div
-        className="simulation-panel"
-        onMouseDown={(event)=> event.stopPropagation()}
-      >
-        <div className="simulation-control-panel">
-          <button
-            type="button"
-            className="simulation-start"
-            onClick={onStart}
-            disabled={
-              simulation.status === "running"
-              || simulation.status === "completed"
-            }
-          >
-            {simulation.status === "paused" ? "Resume" : "Start"}
-          </button>
+      <div className="hud-actions">
+        <HudButton
+          icon={Play}
+          label={simulation.status === "paused" ? "Resume" : "Start"}
+          tone="primary"
+          onClick={onStart}
+          disabled={
+            simulation.status === "running" ||
+            simulation.status === "completed"
+          }
+        />
 
-          <button
-            type="button"
-            className="simulation-pause"
-            onClick={onPause}
-            disabled={simulation.status !== "running"}
-          >
-            Pause
-          </button>
+        <HudButton
+          icon={Pause}
+          label="Pause"
+          onClick={onPause}
+          disabled={simulation.status !== "running"}
+        />
 
-          <button
-            type="button"
-            className="simulation-restart"
-            onClick={onReset}
-            disabled={simulation.status === "idle"}
-          >
-            Restart
-          </button>
-        </div>
+        <HudButton
+          icon={RotateCcw}
+          label="Reset"
+          tone="warn"
+          onClick={onReset}
+          disabled={simulation.status === "idle"}
+        />
 
-        <div className="simulation-view-buttons">
-          <button
-            type="button"
-            onClick={() => setShowDatasetModal(true)}
-          >
-            Dataset Distribution
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab("rounds")}
-          >
-            Round Progress
-          </button>
-
-          <button
-            type="button"
-            onClick={()=> setActiveTab("metrics")}
-          >
-            Metrics
-          </button>
-        </div>
+        <HudButton
+          icon={Eye}
+          label="Round"
+          onClick={() => setActiveTab("rounds")}
+        />
       </div>
+
+      {showDatasetModal && (
+        <DatasetDistributionModal
+          datasetPartition={datasetPartition}
+          setDatasetPartition={setDatasetPartition}
+          onClose={() => setShowDatasetModal(false)}
+        />
+      )}
 
       {/* Live Progress Modal*/}
       {activeTab !== null &&
@@ -236,16 +230,20 @@ function SimulationUI({simulation, datasetPartition, setDatasetPartition, onStar
           document.body
         )}
 
-      {/* Dataset Distribution Modal */}
-      {showDatasetModal &&
-        createPortal(
-          <DatasetDistributionModal
-            datasetPartition={datasetPartition}
-            setDatasetPartition={setDatasetPartition}
-            onClose={() => setShowDatasetModal(false)}
-          />,
-          document.body
-        )}
+      {/* Right dock: simulation tools */}
+      <HudDockItems>
+        <HudButton
+          icon={Database}
+          label="Data Partition"
+          onClick={() => setShowDatasetModal(true)}
+        />
+
+        <HudButton
+          icon={ChartNoAxesCombined}
+          label="Metrics"
+          onClick={() => setActiveTab("metrics")}
+        />
+      </HudDockItems>
     </>
   );
 }

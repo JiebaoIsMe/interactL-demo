@@ -1,4 +1,12 @@
 
+:root {
+  --node-accent: #22d3ee;
+  --node-accent-dark: #0891b2;
+  --node-accent-soft: rgba(34, 211, 238, 0.18);
+  --node-border: #cbd5e1;
+  --node-surface: #ffffff;
+}
+
 .server-node {
     position: absolute;
     left: 50%;
@@ -54,6 +62,12 @@
     font-size: 12px;
     white-space: nowrap;
 }
+
+.node-connector line,
+.node-connector path {
+  stroke: #06b6d4;
+}
+
 /* nodes positioned at the end of connector */
 .node-connector {
     position: absolute;
@@ -69,6 +83,7 @@
 }
 
 /* Observed-client connector */
+.node-connector.observed-connector,
 .observed-connector {
   background: repeating-linear-gradient(
     to right,
@@ -85,6 +100,20 @@
     90deg,
     #2563eb 0px,
     #2563eb 12px,
+    transparent 12px,
+    transparent 22px
+  );
+
+  background-size: 44px 100%;
+  animation: simulation-flow 0.8s linear infinite;
+}
+
+/* Active observed-client connector */
+.node-connector.observed-connector.simulation-active {
+  background: repeating-linear-gradient(
+    90deg,
+    #d97706 0px,
+    #d97706 12px,
     transparent 12px,
     transparent 22px
   );
@@ -142,16 +171,23 @@
   z-index: 3;
 }
 
-.client-node.selected {
-  outline: 3px solid #ef4444;
+/* Selected client/server nodes */
+.client-node.selected,
+.server-node.selected {
+  outline: 3px solid var(--node-accent);
   outline-offset: 3px;
+  box-shadow: 0 0 0 5px var(--node-accent-soft);
 }
 
-.observed-node {
-    background: #fff7ed;
-    outline: 2px solid #d97706;
-    outline-offset: 2px;
-    border-radius: 6px;
+
+.observed-client-node {
+  border-color: var(--node-accent-dark);
+  background-color: #ecfeff;
+}
+
+.observed-client-node.selected {
+  outline: 3px solid var(--node-accent);
+  outline-offset: 3px;
 }
 
 .observed-image {
@@ -175,31 +211,4 @@
   border-radius: 50%;
   font-size: 18px;
   line-height: 1;
-}
-
-/* Toolbar fixed to viewport */
-.node-toolbar {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  z-index: 1000;
-  display: flex;
-  gap: 8px;
-}
-
-.node-toolbar button {
-  padding: 8px 12px;
-  background: white;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.node-toolbar button:hover:not(:disabled) {
-  background: #f3f4f6;
-}
-
-.node-toolbar button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
