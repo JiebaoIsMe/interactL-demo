@@ -1,4 +1,5 @@
-import { useEffect } from 'react';
+
+import { useEffect, useRef } from "react";
 import type { Dispatch, SetStateAction } from "react";
 
 import { clients } from "../mock-data/client";
@@ -6,6 +7,7 @@ import { clients } from "../mock-data/client";
 import type {
   SimulationState,
   SimulationRound,
+  SimulationPhase,
   ClientRoundMetric,
   GlobalRoundMetric,
 } from "../mock-data/simulationData";
@@ -13,11 +15,21 @@ import type {
 import SimulationUI from "./SimulationUI";
 
 import type {
-  DatasetPartition
+  DatasetPartition,
 } from "../mock-data/datasetPartition";
 
 const ROUND_INTERVAL = 1500;
 const TOTAL_ROUNDS = 100;
+
+const PHASES: {
+  phase: SimulationPhase;
+  start: number;
+}[] = [
+  { phase: "selecting", start: 0 },
+  { phase: "training", start: 200 },
+  { phase: "aggregating", start: 900 },
+  { phase: "evaluating", start: 1250 },
+];
 
 export const createInitialState = (): SimulationState => ({
   currentRound: 0,
@@ -84,7 +96,9 @@ function generateRound(round: number): SimulationRound {
   };
 }
 
-function generateGlobalMetric(round: SimulationRound): GlobalRoundMetric {
+function generateGlobalMetric(
+  round: SimulationRound
+): GlobalRoundMetric {
   return {
     round: round.round,
     accuracy: Number(
@@ -108,26 +122,57 @@ type SimulationEngineProps = {
   setSimulationState: Dispatch<SetStateAction<SimulationState>>;
   datasetPartition: DatasetPartition;
   setDatasetPartition: Dispatch<SetStateAction<DatasetPartition>>;
+  observedClientIds: string[];
 };
 
-function SimulationEngine({simulationState,setSimulationState, datasetPartition, setDatasetPartition}: SimulationEngineProps) {
+function SimulationEngine({
+  simulationState,
+  setSimulationState,
+  datasetPartition,
+  setDatasetPartition,
+  observedClientIds,
+}: SimulationEngineProps) {
+  // Tracks elapsed time within the current round.
+  // This allows Pause / Resume to preserve phase progress.
+  const elapsedRef = useRef(0);
+  const lastTickRef = useRef<number | null>(null);
+
+  // Keep the latest simulation state accessible to the timer.
+  const stateRef = useRef(simulationState);
+  stateRef.current = simulationState;
 
   function startSimulation() {
-    setSimulationState((previous) => {
-      if (
-        previous.status === "running" ||
-        previous.status === "completed"
-      ) {
-        return previous;
-      }
+    const previous = stateRef.current;
 
-      return {
-        ...previous,
-        running: true,
-        status: "running",
-        phase: "training",
-      };
-    });
+    if (
+      previous.status === "running" ||
+      previous.status === "completed"
+    ) {
+      return;
+    }
+
+    // Starting from idle begins a new round.
+    // Resuming from paused preserves elapsed progress.
+    if (previous.status === "idle") {
+      elapsedRef.current = 0;
+    }
+
+    lastTickRef.current = null;
+
+    const phase = PHASES.reduce<SimulationPhase>(
+      (current, entry) =>
+        elapsedRef.current >= entry.start
+          ? entry.phase
+          : current,
+      "selecting"
+    );
+
+    setSimulationState((current) => ({
+      ...current,
+      running: true,
+      status: "running",
+      phase,
+    }));
   }
 
   function pauseSimulation() {
@@ -139,65 +184,119 @@ function SimulationEngine({simulationState,setSimulationState, datasetPartition,
       return {
         ...previous,
         running: false,
-        status: "paused"
+        status: "paused",
       };
     });
   }
 
   function resetSimulation() {
+    elapsedRef.current = 0;
+    lastTickRef.current = null;
     setSimulationState(createInitialState());
   }
 
-
   useEffect(() => {
-    if (simulationState.status !== "running") return;
+    if (simulationState.status !== "running") {
+      lastTickRef.current = null;
+      return;
+    }
 
-    const interval = window.setInterval(() => {
-      setSimulationState((previous) => {
-        if (previous.status!== "running") {
-          return previous;
-        }
+    let frameId = 0;
+    let cancelled = false;
 
-        if (previous.currentRound >= previous.totalRounds) {
-          return {
-            ...previous,
-            running: false,
-            status: "completed",
-            phase: "completed",
-          };
-        }
+    const tick = (timestamp: number) => {
+      if (cancelled) return;
+
+      if (lastTickRef.current === null) {
+        lastTickRef.current = timestamp;
+      }
+
+      const delta = Math.max(
+        0,
+        timestamp - lastTickRef.current
+      );
+
+      lastTickRef.current = timestamp;
+      elapsedRef.current += delta;
+
+      const previous = stateRef.current;
+
+      if (previous.status !== "running") return;
+
+      // Complete exactly one round after ROUND_INTERVAL.
+      if (elapsedRef.current >= ROUND_INTERVAL) {
+        elapsedRef.current -= ROUND_INTERVAL;
 
         const nextRound = previous.currentRound + 1;
-
         const roundData = generateRound(nextRound);
         const globalMetric = generateGlobalMetric(roundData);
 
         const completed =
           nextRound >= previous.totalRounds;
 
-        return {
+        const nextState: SimulationState = {
           ...previous,
           currentRound: nextRound,
           running: !completed,
           status: completed ? "completed" : "running",
-          phase: completed ? "completed" : "training",
+          phase: completed ? "completed" : "selecting",
           rounds: [...previous.rounds, roundData],
           globalMetrics: [
             ...previous.globalMetrics,
             globalMetric,
           ],
         };
-      });
-    }, ROUND_INTERVAL);
 
-    return () => window.clearInterval(interval);
-  }, [simulationState.status]);
+        // Update ref immediately so the next frame
+        // sees the newest completed round.
+        stateRef.current = nextState;
+        setSimulationState(nextState);
+
+        if (completed) {
+          elapsedRef.current = 0;
+          lastTickRef.current = null;
+          return;
+        }
+      } else {
+        // Determine phase from elapsed time.
+        let currentPhase: SimulationPhase = "selecting";
+
+        for (const entry of PHASES) {
+          if (elapsedRef.current >= entry.start) {
+            currentPhase = entry.phase;
+          }
+        }
+
+        if (previous.phase !== currentPhase) {
+          const nextState: SimulationState = {
+            ...previous,
+            phase: currentPhase,
+          };
+
+          stateRef.current = nextState;
+          setSimulationState(nextState);
+        }
+      }
+
+      frameId = requestAnimationFrame(tick);
+    };
+
+    frameId = requestAnimationFrame(tick);
+
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(frameId);
+      lastTickRef.current = null;
+    };
+  }, [simulationState.status, setSimulationState]);
 
   return (
     <SimulationUI
       simulation={simulationState}
       datasetPartition={datasetPartition}
       setDatasetPartition={setDatasetPartition}
+      rounds={simulationState.rounds}
+      observedClientIds={observedClientIds}
       onStart={startSimulation}
       onPause={pauseSimulation}
       onReset={resetSimulation}

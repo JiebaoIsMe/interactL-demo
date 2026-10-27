@@ -1,13 +1,14 @@
 
 import { useState } from "react";
+import { createPortal } from "react-dom";
+import { X } from "lucide-react";
 
 import SettingsTabs from "./tab/SettingsTabs";
 
-import type {
-  ServerSettings,
-} from "../mock-data/server";
+import type { ServerSettings } from "../mock-data/server";
 
 import { useDraggableModal } from "./useDraggableModel";
+
 type ServerModalProps = {
   settings: ServerSettings;
   clientTotal: number;
@@ -15,8 +16,14 @@ type ServerModalProps = {
   onClose: () => void;
 };
 
-function ServerModal({ settings, clientTotal, onSave, onClose }: ServerModalProps) {
-  const [draftSettings, setDraftSettings] = useState<ServerSettings>(() => structuredClone(settings));
+function ServerModal({
+  settings,
+  clientTotal,
+  onSave,
+  onClose,
+}: ServerModalProps) {
+  const [draftSettings, setDraftSettings] =
+    useState<ServerSettings>(() => structuredClone(settings));
 
   const {
     modalRef,
@@ -26,7 +33,11 @@ function ServerModal({ settings, clientTotal, onSave, onClose }: ServerModalProp
     handlePointerUp,
   } = useDraggableModal();
 
-  return (
+  function handleSave() {
+    onSave(structuredClone(draftSettings));
+  }
+
+  return createPortal(
     <div
       className="modal-overlay"
       onMouseDown={(event) => event.stopPropagation()}
@@ -41,11 +52,13 @@ function ServerModal({ settings, clientTotal, onSave, onClose }: ServerModalProp
         className="modal server-modal"
         role="dialog"
         aria-modal="true"
-        aria-label="Server Settings"
+        aria-labelledby="server-modal-title"
         style={{
           transform: `translate(${position.x}px, ${position.y}px)`,
         }}
+        onClick={(event) => event.stopPropagation()}
       >
+        {/* Header */}
         <header
           className="modal-header draggable-modal-header"
           onPointerDown={handlePointerDown}
@@ -53,39 +66,53 @@ function ServerModal({ settings, clientTotal, onSave, onClose }: ServerModalProp
           onPointerUp={handlePointerUp}
           onPointerCancel={handlePointerUp}
         >
-          <h2> Server Configuration </h2>
+          <div className="server-modal-heading">
+            <h2 id="server-modal-title">
+              Server Configuration
+            </h2>
+          </div>
 
           <button
             type="button"
             className="modal-close-button"
+            aria-label="Close server configuration"
+            onPointerDown={(event) => event.stopPropagation()}
             onClick={onClose}
           >
-            x
+            <X size={18} />
           </button>
         </header>
 
-        <SettingsTabs
-          mode="server"
-          settings={draftSettings}
-          clientTotal={clientTotal}
-          onChange={setDraftSettings}
-        />
+        {/* Scrollable settings */}
+        <div className="modal-body server-modal-body">
+          <SettingsTabs
+            mode="server"
+            settings={draftSettings}
+            clientTotal={clientTotal}
+            onChange={setDraftSettings}
+          />
+        </div>
 
+        {/* Footer */}
         <footer className="modal-footer">
-          <button type="button" onClick={onClose}>
+          <button
+            type="button"
+            onClick={onClose}
+          >
             Cancel
           </button>
 
           <button
             type="button"
             className="modal-save"
-            onClick={() => onSave(draftSettings)}
+            onClick={handleSave}
           >
             Save Changes
           </button>
         </footer>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

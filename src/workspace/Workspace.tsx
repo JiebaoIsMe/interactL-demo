@@ -12,10 +12,11 @@ import Node from "../node/Node";
 import HudButton from "../components/hud-button";
 import { HudDock, HudDockProvider } from "../components/hud-dock";
 
-import
-  SimulationEngine, {
-  createInitialState
+import SimulationEngine, {
+  createInitialState,
 } from "./SimulationEngine";
+
+import { initialObservedClients } from "../mock-data/client";
 
 import type { SimulationState } from "../mock-data/simulationData";
 
@@ -36,15 +37,25 @@ type Position = {
 };
 
 function Workspace() {
+  const [datasetPartition, setDatasetPartition] = useState(() =>
+    generateDatasetPartition(defaultPartitionConfig)
+  );
 
-  const [datasetPartition, setDatasetPartition] = useState(() => generateDatasetPartition(defaultPartitionConfig));
+  const [simulationState, setSimulationState] =
+    useState<SimulationState>(createInitialState);
 
-  const [simulationState, setSimulationState] = useState<SimulationState>(createInitialState);
+  // Shared observed-client state.
+  // Used by Node and SimulationEngine.
+  const [observedClientIds, setObservedClientIds] =
+    useState<string[]>(
+      () => initialObservedClients.map((client) => client.clientId)
+    );
 
   const containerRef = useRef<HTMLDivElement>(null);
   const workspaceRef = useRef<HTMLDivElement>(null);
 
   const [zoom, setZoom] = useState(1);
+
   const [position, setPosition] = useState<Position>({
     x: 0,
     y: 0,
@@ -71,7 +82,8 @@ function Workspace() {
         return nextPosition;
       }
 
-      const { width, height } = container.getBoundingClientRect();
+      const { width, height } =
+        container.getBoundingClientRect();
 
       const scaledWidth = WORKSPACE_SIZE * nextZoom;
       const scaledHeight = WORKSPACE_SIZE * nextZoom;
@@ -79,8 +91,15 @@ function Workspace() {
       const minX = Math.min(0, width - scaledWidth);
       const minY = Math.min(0, height - scaledHeight);
 
-      const maxX = Math.max(0, (width - scaledWidth) / 2);
-      const maxY = Math.max(0, (height - scaledHeight) / 2);
+      const maxX = Math.max(
+        0,
+        (width - scaledWidth) / 2
+      );
+
+      const maxY = Math.max(
+        0,
+        (height - scaledHeight) / 2
+      );
 
       return {
         x: Math.min(maxX, Math.max(minX, nextPosition.x)),
@@ -95,7 +114,8 @@ function Workspace() {
 
     if (!container) return;
 
-    const { width, height } = container.getBoundingClientRect();
+    const { width, height } =
+      container.getBoundingClientRect();
 
     setZoom(1);
 
@@ -105,7 +125,7 @@ function Workspace() {
     });
   }, []);
 
-  // Center the workspace when mount
+  // Center the workspace on mount.
   useEffect(() => {
     recenterWorkspace();
   }, [recenterWorkspace]);
@@ -113,6 +133,7 @@ function Workspace() {
   // Keep the workspace within bounds when the container resizes.
   useEffect(() => {
     const container = containerRef.current;
+
     if (!container) return;
 
     const observer = new ResizeObserver(() => {
@@ -127,7 +148,11 @@ function Workspace() {
   }, [zoom, clampPosition]);
 
   const zoomAtPoint = useCallback(
-    (nextZoom: number, clientX: number, clientY: number) => {
+    (
+      nextZoom: number,
+      clientX: number,
+      clientY: number
+    ) => {
       const container = containerRef.current;
 
       if (!container) return;
@@ -151,7 +176,10 @@ function Workspace() {
       };
 
       setZoom(newZoom);
-      setPosition(clampPosition(nextPosition, newZoom));
+
+      setPosition(
+        clampPosition(nextPosition, newZoom)
+      );
     },
     [zoom, position, clampZoom, clampPosition]
   );
@@ -173,7 +201,9 @@ function Workspace() {
     [zoom, zoomAtPoint]
   );
 
-  const handleWheel = (event: ReactWheelEvent<HTMLDivElement>) => {
+  const handleWheel = (
+    event: ReactWheelEvent<HTMLDivElement>
+  ) => {
     // Ctrl + scroll to zoom.
     if (!event.ctrlKey) return;
 
@@ -216,12 +246,11 @@ function Workspace() {
     setIsDragging(true);
   };
 
-  // workspace drag
+  // Workspace drag.
   useEffect(() => {
     const workspace = workspaceRef.current;
-    if (!workspace) return;
 
-    if (!isDragging) return;
+    if (!workspace || !isDragging) return;
 
     const handleMouseMove = (event: MouseEvent) => {
       const start = dragStartRef.current;
@@ -247,12 +276,26 @@ function Workspace() {
       setIsDragging(false);
     };
 
-    workspace.addEventListener("mousemove", handleMouseMove);
-    workspace.addEventListener("mouseup", handleMouseUp);
+    workspace.addEventListener(
+      "mousemove",
+      handleMouseMove
+    );
+
+    workspace.addEventListener(
+      "mouseup",
+      handleMouseUp
+    );
 
     return () => {
-      workspace.removeEventListener("mousemove", handleMouseMove);
-      workspace.removeEventListener("mouseup", handleMouseUp);
+      workspace.removeEventListener(
+        "mousemove",
+        handleMouseMove
+      );
+
+      workspace.removeEventListener(
+        "mouseup",
+        handleMouseUp
+      );
     };
   }, [isDragging, zoom, clampPosition]);
 
@@ -264,7 +307,7 @@ function Workspace() {
         onWheel={handleWheel}
       >
         {/* Workspace HUD controls */}
-          <div className="hud-zoom hud-glass">
+        <div className="hud-zoom hud-glass">
           <HudButton
             icon={Plus}
             aria-label="Zoom in"
@@ -307,17 +350,19 @@ function Workspace() {
           <Node
             simulationState={simulationState}
             datasetPartition={datasetPartition}
+            observedClientIds={observedClientIds}
+            setObservedClientIds={setObservedClientIds}
           />
         </div>
 
-        {/*Simulation Control Panel*/}
+        {/* Simulation Control Panel */}
         <SimulationEngine
           simulationState={simulationState}
           setSimulationState={setSimulationState}
           datasetPartition={datasetPartition}
           setDatasetPartition={setDatasetPartition}
+          observedClientIds={observedClientIds}
         />
-
       </div>
     </div>
   );

@@ -4,6 +4,7 @@
   --accent-ink: #083344;
 }
 
+
 /* ---------- Modal shell (shared by Client, Server, Observed) ---------- */
 
 .modal-overlay {
@@ -29,249 +30,309 @@
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
 }
 
-.observed-clients-modal {
-  width: min(1000px, 95vw);
-  max-height: 90vh;
-}
-
-/* Table on top, selected-client details below */
-.observed-clients-modal .observed-modal-body {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  min-height: 0;
-  padding: 16px;
-}
-
-.observed-clients-table-wrapper {
-  max-height: 260px;
-  overflow: auto;
-  border: 1px solid #000;
-  border-radius: 8px;
-}
-
-.observed-clients-table {
-  width: 100%;
-  min-width: 600px;
-  border-collapse: collapse;
-  font-size: 14px;
-}
-
-.observed-clients-table th {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-
-  padding: 10px 12px;
-  background: var(--accent-soft);
-  color: var(--accent-ink);
-  border-bottom: 1px solid #000;
-
-  font-size: 13px;
-  font-weight: 600;
-  text-align: left;
-  white-space: nowrap;
-}
-
-.observed-clients-table td {
-  padding: 8px 12px;
-  border-bottom: 1px solid #e5e7eb;
-  color: #334155;
-  vertical-align: middle;
-}
-
-.observed-clients-table tbody tr:last-child td {
-  border-bottom: none;
-}
-
-.observed-clients-table tbody tr:hover td {
-  background: #f8fafc;
-}
-
-.observed-clients-table tbody tr.selected td {
-  background: var(--accent-soft);
-}
-
-.observed-clients-table tbody tr.selected td:first-child {
-  box-shadow: inset 3px 0 0 var(--accent);
-}
-
-.observed-client-id {
-  font-weight: 600;
-  color: #0f172a;
-  white-space: nowrap;
-}
-
-.observed-group-pill {
-  display: inline-block;
-  padding: 2px 10px;
-  background: #f1f5f9;
-  border: 1px solid #cbd5e1;
-  border-radius: 99px;
-  font-size: 12px;
-  color: #475569;
-  white-space: nowrap;
-}
-
-/* View Info + Observe/Remove buttons */
-.observed-view-button,
-.observed-action-button {
-  min-width: 88px;
-  padding: 6px 12px;
-
-  background: white;
-  border: 1px solid #000;
-  border-radius: 6px;
-
-  font-size: 13px;
-  font-weight: 500;
-  color: #0f172a;
-  cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
-}
-
-.observed-view-button:hover {
-  background: var(--accent-soft);
-}
-
-.observed-clients-table tr.selected .observed-view-button {
-  background: var(--accent);
-  color: var(--accent-ink);
-}
-
-.observed-action-button.observe {
-  border-color: #0891b2;
-  color: #0e7490;
-}
-
-.observed-action-button.observe:hover {
-  background: var(--accent);
-  border-color: #0891b2;
-  color: var(--accent-ink);
-}
-
-.observed-action-button.remove {
-  border-color: #dc2626;
-  color: #dc2626;
-}
-
-.observed-action-button.remove:hover {
-  background: #fee2e2;
-}
 
 /* ---------- Observed modal: selected client details ---------- */
 
-.observed-clients-modal .observed-modal-details {
-  padding: 16px;
-  background: white;
-  border: 1px solid #000;
-  border-radius: 8px;
-}
 
-.observed-clients-modal .observed-modal-placeholder {
-  padding: 32px 16px;
-  border: 1px dashed #94a3b8;
-  border-radius: 8px;
+/* ==========================================
+   Observed Client Modal — Phase O4
+   Scoped styles only
+   ========================================== */
+
+.observed-clients-modal {
+  width: min(1100px, 96vw);
+  max-height: 90vh;
+  overflow-y: auto;
+  border: 1px solid #94a3b8;
+  border-radius: 0;
   background: #f8fafc;
-  color: #64748b;
-  font-size: 14px;
-  text-align: center;
+  color: #0f172a;
 }
 
-.observed-clients-modal .observed-modal-client-header {
+/* Header */
+
+.observed-clients-modal .modal-header {
+  background: #e2e8f0;
+  color: #0f172a;
+  border-bottom: 1px solid #cbd5e1;
+}
+
+.observed-clients-modal .observed-modal-subtitle {
+  margin: 5px 0 0;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.observed-clients-modal .modal-close-button {
+  border-radius: 0;
+}
+
+/* Search and filter */
+
+.observed-clients-modal .observed-modal-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 200px;
+  gap: 12px;
+  padding: 16px;
+  background: #ffffff;
+  border-bottom: 1px solid #cbd5e1;
+}
+
+.observed-clients-modal .modal-input,
+.observed-clients-modal .modal-dropdown {
+  min-width: 0;
+  border: 1px solid #94a3b8;
+  border-radius: 0;
+}
+
+/* Two-column workspace */
+
+.observed-clients-modal .observed-modal-workspace {
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(min(100%, 320px), 1fr)
+  );
+  align-items: start;
+  gap: 16px;
+  padding: 16px;
+}
+
+.observed-clients-modal .observed-clients-list,
+.observed-clients-modal .observed-modal-details {
+  min-width: 0;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 0;
+}
+
+/* Client browser */
+
+.observed-clients-modal .observed-clients-list {
+  overflow: hidden;
+}
+
+.observed-clients-modal
+  .observed-clients-list > .observed-modal-client-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 12px;
-  margin-bottom: 16px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid #e5e7eb;
+  padding: 14px 16px;
+  margin: 0;
+  background: #f1f5f9;
+  border-bottom: 1px solid #cbd5e1;
 }
 
-.observed-clients-modal .observed-modal-client-header h3 {
+.observed-clients-modal
+  .observed-clients-list > .observed-modal-client-header h3 {
   margin: 0;
-  font-size: 18px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.observed-clients-modal
+  .observed-clients-list > .observed-modal-client-header span {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.observed-clients-modal .observed-clients-table-wrapper {
+  max-height: 520px;
+  overflow-y: auto;
+  border: 0;
+  border-radius: 0;
+}
+
+.observed-clients-modal .observed-client-browser-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.observed-clients-modal .observed-client-browser-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  border-radius: 0;
+  transition: background 0.15s ease;
+}
+
+.observed-clients-modal .observed-client-browser-row:last-child {
+  border-bottom: 0;
+}
+
+.observed-clients-modal .observed-client-browser-row:hover {
+  background: #f0f9ff !important;
+}
+
+.observed-clients-modal .observed-client-browser-row.selected {
+  background: #ecfeff;
+  box-shadow: inset 3px 0 0 #0891b2;
+}
+
+.observed-clients-modal .observed-client-browser-row > button:first-child {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.observed-clients-modal .observed-client-id {
+  font-size: 14px;
+  font-weight: 600;
   color: #0f172a;
 }
 
-.observed-clients-modal .observed-modal-client-header p {
-  margin: 4px 0 0;
-  font-size: 13px;
+/* Observe / Remove actions */
+
+.observed-clients-modal .observed-action-button {
+  flex-shrink: 0;
+  min-width: 82px;
+  padding: 7px 10px;
+  border: 1px solid #94a3b8;
+  border-radius: 0;
+  background: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.observed-clients-modal .observed-action-button.observe {
+  border-color: #0891b2;
+  color: #0e7490;
+}
+
+.observed-clients-modal .observed-action-button.observe:hover {
+  background: #ecfeff;
+}
+
+.observed-clients-modal .observed-action-button.remove {
+  border-color: #dc2626;
+  color: #dc2626;
+}
+
+.observed-clients-modal .observed-action-button.remove:hover {
+  background: #fef2f2;
+}
+
+/* Monitoring panel */
+
+.observed-clients-modal .observed-modal-details {
+  padding: 16px;
+}
+
+.observed-clients-modal
+  .observed-modal-details > .observed-modal-client-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.observed-clients-modal
+  .observed-modal-details > .observed-modal-client-header h3 {
+  margin: 0;
+  font-size: 17px;
+  color: #0f172a;
+}
+
+.observed-clients-modal
+  .observed-modal-details > .observed-modal-client-header p {
+  margin: 5px 0 0;
+  font-size: 12px;
   color: #64748b;
 }
 
 .observed-clients-modal .observed-modal-status {
-  flex: none;
-  padding: 4px 12px;
+  flex-shrink: 0;
+  padding: 5px 10px;
   background: #f1f5f9;
   border: 1px solid #cbd5e1;
-  border-radius: 99px;
-  font-size: 12px;
+  border-radius: 0;
+  font-size: 11px;
   font-weight: 600;
-  color: #475569;
+  color: #64748b;
 }
 
 .observed-clients-modal .observed-modal-status.active {
-  background: var(--accent-soft);
+  background: #ecfeff;
   border-color: #0891b2;
-  color: var(--accent-ink);
+  color: #0e7490;
 }
+
+/* Monitoring metrics */
 
 .observed-clients-modal .observed-modal-summary {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  margin-bottom: 16px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 18px;
 }
 
 .observed-clients-modal .observed-modal-summary > div {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
+  min-width: 0;
   padding: 12px;
   background: #f8fafc;
   border: 1px solid #cbd5e1;
-  border-left: 3px solid var(--accent);
-  border-radius: 8px;
+  border-left: 3px solid #0891b2;
+  border-radius: 0;
 }
 
 .observed-clients-modal .observed-modal-summary span {
-  font-size: 12px;
+  font-size: 11px;
   color: #64748b;
 }
 
 .observed-clients-modal .observed-modal-summary strong {
-  font-size: 18px;
+  font-size: clamp(15px, 2vw, 20px);
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: #0f172a;
 }
 
+.observed-clients-modal .observed-modal-summary small {
+  font-size: 11px;
+  color: #64748b;
+}
 
-/* Observed client dataset distribution */
+/* Dataset distribution */
+
 .observed-clients-modal .observed-modal-dataset {
   width: 100%;
   min-width: 0;
   box-sizing: border-box;
-
-  margin-bottom: 20px;
-  padding: 16px;
-
+  margin-bottom: 16px;
+  padding: 14px;
   background: #ffffff;
   border: 1px solid #cbd5e1;
-  border-radius: 8px;
+  border-radius: 0;
 }
 
 .observed-clients-modal .observed-modal-dataset-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  gap: 12px;
+  justify-content: space-between;
+  gap: 10px;
   margin-bottom: 12px;
 }
 
 .observed-clients-modal .observed-modal-dataset-header h4 {
   margin: 0;
   font-size: 14px;
+  font-weight: 600;
   color: #1e293b;
 }
 
@@ -280,18 +341,39 @@
   color: #64748b;
 }
 
-.observed-clients-modal .observed-modal-details h4 {
-  margin: 0 0 8px;
+/* Collapsible round history */
+
+.observed-clients-modal .observed-modal-history {
+  border-top: 1px solid #e2e8f0;
+}
+
+.observed-clients-modal .observed-modal-history-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  border: 0;
+  border-bottom: 1px solid #cbd5e1;
+  border-radius: 0;
+  background: transparent;
+  color: #1e293b;
   font-size: 14px;
   font-weight: 600;
-  color: #1e293b;
+  text-align: left;
+  cursor: pointer;
+}
+
+.observed-clients-modal .observed-modal-history-toggle:hover {
+  color: #0891b2;
 }
 
 .observed-clients-modal .observed-modal-table-wrapper {
-  max-height: 220px;
+  max-height: 240px;
   overflow: auto;
-  border: 1px solid #000;
-  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 0;
 }
 
 .observed-clients-modal .observed-modal-table {
@@ -303,29 +385,92 @@
 
 .observed-clients-modal .observed-modal-table th,
 .observed-clients-modal .observed-modal-table td {
-  padding: 8px 12px;
+  padding: 9px 10px;
   text-align: left;
   white-space: nowrap;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid #e2e8f0;
 }
 
 .observed-clients-modal .observed-modal-table th {
   position: sticky;
   top: 0;
-  background: var(--accent-soft);
-  color: var(--accent-ink);
-  border-bottom: 1px solid #000;
+  background: #ecfeff;
+  color: #083344;
+  font-weight: 600;
 }
 
-.observed-clients-modal .observed-modal-table tbody tr:last-child td {
-  border-bottom: none;
+.observed-clients-modal .observed-modal-table tbody tr:hover {
+  background: #f8fafc;
 }
 
-.observed-clients-modal .observed-modal-details .observed-modal-empty {
-  margin: 12px 0 0;
-  font-size: 13px;
+/* Empty states */
+
+.observed-clients-modal .observed-modal-placeholder,
+.observed-clients-modal .observed-modal-empty {
+  padding: 20px 12px;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 0;
   color: #64748b;
+  font-size: 13px;
   text-align: center;
+}
+
+.observed-clients-modal .observed-modal-placeholder {
+  padding: 36px 16px;
+}
+
+/* Footer and focus */
+
+.observed-clients-modal .modal-footer {
+  background: #f8fafc;
+  border-top: 1px solid #cbd5e1;
+}
+
+.observed-clients-modal .modal-footer button {
+  border-radius: 0;
+}
+
+.observed-clients-modal button:focus-visible,
+.observed-clients-modal input:focus-visible,
+.observed-clients-modal select:focus-visible {
+  outline: 2px solid #0891b2;
+  outline-offset: 2px;
+}
+
+/* Responsive */
+
+@media (max-width: 760px) {
+  .observed-clients-modal {
+    width: 100%;
+    max-height: 95vh;
+  }
+
+  .observed-clients-modal .observed-modal-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .observed-clients-modal .observed-modal-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .observed-clients-modal .observed-clients-table-wrapper {
+    max-height: 280px;
+  }
+}
+
+@media (max-width: 480px) {
+  .observed-clients-modal .observed-modal-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .observed-clients-modal .observed-modal-dataset-header {
+    flex-wrap: wrap;
+  }
+
+  .observed-clients-modal .observed-modal-details {
+    padding: 12px;
+  }
 }
 
 .modal-header {
@@ -569,13 +714,6 @@
 
 /* ---------- Observed modal: controls row ---------- */
 
-.observed-modal-controls {
-  display: grid;
-  grid-template-columns: 1fr 200px;
-  gap: 16px;
-  padding: 16px;
-  border-bottom: 1px solid #e5e7eb;
-}
 
 .client-modal-filter {
   display: inline-flex;
@@ -742,9 +880,8 @@
 
 @media (max-width: 600px) {
   .client-modal-controls,
-  .observed-modal-controls,
   .node-modal-fields,
-  .observed-clients-modal .observed-modal-summary,
+  .observed-clients-modal,
   .client-monitoring-summary {
     grid-template-columns: 1fr;
   }
@@ -949,4 +1086,543 @@
   .dataset-distribution-modal {
     width: 100%;
   }
+}
+
+/* ---------- Client Manager ---------- */
+
+.client-modal .modal-header {
+  background: #e2e8f0;
+  color: #0f172a;
+  border-bottom: 1px solid #cbd5e1;
+}
+
+.client-view-tabs {
+  display: flex;
+  background: #e2e8f0;
+  border-bottom: 1px solid #cbd5e1;
+}
+
+.client-view-tabs button {
+  padding: 12px 20px;
+  background: transparent;
+  color: #475569;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.client-view-tabs button.active {
+  background: #ecfeff;
+  color: #0e7490;
+  border-bottom-color: #0891b2;
+}
+
+.client-settings-view {
+  background: #f8fafc;
+}
+
+.client-settings-group-selector {
+  padding: 20px;
+  border-bottom: 1px solid #cbd5e1;
+  background: #ffffff;
+}
+
+.client-settings-group-selector .modal-field {
+  max-width: 320px;
+}
+
+/*Client Group Settings only — square HUD style */
+.client-modal .client-settings-advanced {
+ margin-top: 20px;
+ border: 1px solid #cbd5e1;
+ border-radius: 0;
+ background: #fff;
+}
+
+.client-modal .client-settings-advanced > summary {
+ padding: 14px 16px;
+ color: #0f172a;
+ background: #f1f5f9;
+ cursor: pointer;
+ font-size: 14px;
+ font-weight: 600;
+}
+
+.client-modal .client-settings-advanced > summary:hover {
+ background: #ecfeff;
+}
+
+.client-modal .client-settings-advanced[open] > summary {
+ border-bottom: 1px solid #cbd5e1;
+ color: #0e7490;
+}
+
+.client-modal .client-settings-advanced-content {
+ padding: 12px 16px;
+}
+
+.client-modal .client-settings-advanced-content .node-modal-separator {
+ margin: 16px 0;
+}
+
+.client-modal .client-modal-row.active {
+  background: #ecfeff;
+  border-color: #0891b2;
+}
+
+.client-modal .modal-input,
+.client-modal .modal-dropdown {
+  border-color: #94a3b8;
+}
+
+.client-modal .modal-save {
+  background: #0891b2;
+  color: #ffffff;
+}
+
+.client-modal button:focus-visible,
+.client-modal input:focus-visible,
+.client-modal select:focus-visible {
+  outline: 2px solid #0891b2;
+  outline-offset: 2px;
+}
+
+@media (max-width: 600px) {
+  .client-view-tabs button {
+    flex: 1;
+    padding: 12px 8px;
+  }
+  .client-settings-group-selector .modal-field {
+    max-width: none;
+  }
+}
+
+.client-modal {
+  width: min(980px, 96vw);
+  max-height: 90vh;
+  border: 1px solid #94a3b8;
+  border-radius: 0;
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+/* Square corners throughout the Client Modal */
+.client-modal,
+.client-modal button,
+.client-modal input,
+.client-modal select,
+.client-modal .client-modal-list,
+.client-modal .client-modal-row,
+.client-modal .client-monitoring-summary > div,
+.client-modal .node-modal-tabs button,
+.client-modal .client-modal-select small {
+  border-radius: 0;
+}
+
+@media (max-width: 600px) {
+  .client-modal {
+    width: 100%;
+    max-height: 95vh;
+  }
+}
+
+/* =========================================================
+   SHARED HIGH-TRANSPARENCY GLASS FINISH
+   Retains existing modal structure, controls, and square edges.
+   Add these overrides last so they supersede opaque panels.
+   ========================================================= */
+:root {
+  --modal-glass-surface: rgba(226, 232, 240, 0.28);
+  --modal-glass-panel: rgba(248, 250, 252, 0.18);
+  --modal-glass-hover: rgba(207, 250, 254, 0.34);
+  --modal-glass-border: rgba(8, 145, 178, 0.35);
+  --modal-glass-blur: 20px;
+}
+
+.modal-overlay,
+.simulation-modal-overlay {
+  background: rgba(2, 6, 23, 0.16);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+
+.modal,
+.client-modal,
+.observed-clients-modal,
+.dataset-distribution-modal,
+.simulation-modal {
+  background: var(--modal-glass-surface);
+  backdrop-filter: blur(var(--modal-glass-blur)) saturate(130%);
+  -webkit-backdrop-filter: blur(var(--modal-glass-blur)) saturate(130%);
+  border-color: var(--modal-glass-border);
+  border-radius: 0;
+  box-shadow: 0 20px 60px rgba(2, 6, 23, 0.22);
+}
+
+/* Bodies remain translucent; keep the underlying workspace visible. */
+.modal-body,
+.simulation-modal-body,
+.dataset-distribution-modal .simulation-modal-body,
+.node-modal-content,
+.node-modal-section,
+.client-modal-browser,
+.client-monitoring,
+.client-settings-view,
+.observed-clients-modal .observed-modal-workspace,
+.observed-clients-modal .observed-modal-details,
+.observed-clients-modal .observed-clients-list,
+.observed-clients-modal .observed-modal-dataset,
+.observed-clients-modal .observed-modal-history,
+.simulation-chart,
+.simulation-section {
+  background: transparent;
+}
+
+/* Nested cards and toolbars: translucent instead of opaque white. */
+.observed-clients-modal .observed-modal-controls,
+.observed-clients-modal .observed-client-browser-row,
+.observed-clients-modal .observed-modal-summary > div,
+.observed-clients-modal .observed-modal-status,
+.observed-clients-modal .observed-modal-empty,
+.observed-clients-modal .modal-footer,
+.client-modal-list,
+.client-modal-row,
+.client-monitoring-summary > div,
+.client-modal .client-settings-advanced,
+.client-modal .client-settings-advanced > summary,
+.dataset-summary > div,
+.dataset-controls,
+.dataset-chart-container,
+.dataset-modal-footer,
+.simulation-round-indicator,
+.simulation-metrics-controls,
+.simulation-metrics-caption {
+  background: var(--modal-glass-panel);
+}
+
+.observed-clients-modal .observed-client-browser-row:hover,
+.client-modal-row:hover,
+.observed-clients-modal .observed-modal-table tbody tr:hover {
+  background: var(--modal-glass-hover) !important;
+}
+
+.observed-clients-modal .observed-client-browser-row.selected,
+.client-modal-row.active,
+.client-modal .client-modal-row.active,
+.observed-clients-modal .observed-modal-status.active {
+  background: rgba(103, 232, 249, 0.36);
+}
+
+/* Tables retain contrast while their backgrounds stay see-through. */
+.observed-clients-modal .observed-modal-table th,
+.client-history-table th {
+  background: rgba(165, 243, 252, 0.32);
+}
+
+/* Simulation modals may be styled in a separate stylesheet. */
+.simulation-modal-body {
+  color: #0f172a;
+}
+
+.simulation-modal-body .recharts-cartesian-grid line {
+  stroke: rgba(71, 85, 105, 0.25);
+}
+
+/* Do not force transparency on dropdown menus, inputs, or buttons:
+   they need distinct surfaces to remain usable. */
+
+/* =========================================================
+   DATASET + METRICS GLASS THEME
+   Shared with Client, Server and Observed modals.
+   Scoped overrides preserve existing structure and behavior.
+   ========================================================= */
+
+/* Both use the simulation modal shell; keep the backdrop visible. */
+.simulation-modal-overlay {
+  background: rgba(2, 6, 23, 0.16);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+
+.simulation-modal,
+.simulation-modal.dataset-distribution-modal {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-height: 90vh;
+  overflow: hidden;
+  background: var(--modal-glass-surface, rgba(226, 232, 240, 0.28));
+  border: 1px solid var(--modal-glass-border, rgba(8, 145, 178, 0.35));
+  border-radius: 0;
+  backdrop-filter: blur(var(--modal-glass-blur, 20px)) saturate(130%);
+  -webkit-backdrop-filter: blur(var(--modal-glass-blur, 20px)) saturate(130%);
+  box-shadow: 0 20px 60px rgba(2, 6, 23, 0.22);
+}
+
+.simulation-modal:not(.dataset-distribution-modal) {
+  width: min(1100px, 95vw);
+}
+
+.simulation-modal.dataset-distribution-modal {
+  width: min(950px, 95vw);
+}
+
+.simulation-modal-header {
+  flex-shrink: 0;
+  background: rgba(226, 232, 240, 0.24);
+  border-bottom: 1px solid rgba(8, 145, 178, 0.3);
+  color: #0f172a;
+}
+
+.simulation-modal-header h2 {
+  color: #0f172a;
+}
+
+.simulation-modal-close-button {
+  border-radius: 0;
+}
+
+.simulation-modal-body,
+.dataset-distribution-modal .simulation-modal-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  background: transparent;
+  color: #0f172a;
+}
+
+.simulation-modal .simulation-round-indicator,
+.simulation-modal .simulation-metrics-controls,
+.simulation-modal .simulation-metrics-caption,
+.simulation-modal .simulation-chart,
+.simulation-modal .simulation-section,
+.simulation-modal .simulation-metrics-empty,
+.dataset-distribution-modal .dataset-modal-section,
+.dataset-distribution-modal .dataset-modal-configuration-content,
+.dataset-distribution-modal .dataset-chart-container,
+.dataset-distribution-modal .dataset-modal-footer,
+.dataset-distribution-modal .dataset-controls,
+.dataset-distribution-modal .dataset-alpha-control,
+.dataset-distribution-modal .dataset-summary > div {
+  background: var(--modal-glass-panel, rgba(248, 250, 252, 0.18));
+  border-radius: 0;
+}
+
+/* Section surfaces stay subtle; chart canvases remain transparent. */
+.simulation-modal .simulation-chart,
+.dataset-distribution-modal .dataset-chart-container {
+  background: transparent;
+}
+
+.dataset-distribution-modal .dataset-modal-section,
+.dataset-distribution-modal .dataset-modal-configuration-content,
+.dataset-distribution-modal .dataset-alpha-control {
+  border-color: rgba(8, 145, 178, 0.25);
+}
+
+.dataset-distribution-modal .dataset-modal-section-toggle {
+  background: rgba(226, 232, 240, 0.24);
+  color: #0f172a;
+  border-radius: 0;
+}
+
+.dataset-distribution-modal .dataset-modal-section-toggle:hover {
+  background: rgba(207, 250, 254, 0.34);
+}
+
+.dataset-distribution-modal .dataset-summary strong,
+.dataset-distribution-modal h3,
+.dataset-distribution-modal .dataset-controls label,
+.dataset-distribution-modal .dataset-alpha-header label,
+.simulation-modal .simulation-metrics-filter-label,
+.simulation-modal .simulation-round-indicator strong {
+  color: #0f172a;
+}
+
+.dataset-distribution-modal .dataset-summary span,
+.dataset-distribution-modal .dataset-alpha-labels,
+.dataset-distribution-modal .dataset-modal-page-note,
+.simulation-modal .simulation-metrics-client-count,
+.simulation-modal .simulation-metrics-caption,
+.simulation-modal .simulation-phase,
+.simulation-modal .simulation-metrics-empty {
+  color: #475569;
+}
+
+/* Controls remain legible while reflecting the glass styling. */
+.dataset-distribution-modal input:not([type="range"]),
+.dataset-distribution-modal select,
+.simulation-modal .modal-dropdown {
+  background: rgba(248, 250, 252, 0.72);
+  border: 1px solid rgba(8, 145, 178, 0.35);
+  border-radius: 0;
+  color: #0f172a;
+}
+
+.dataset-distribution-modal button,
+.simulation-modal button {
+  border-radius: 0;
+}
+
+.dataset-distribution-modal .dataset-modal-footer {
+  border-top: 1px solid rgba(8, 145, 178, 0.3);
+}
+
+/* Recharts SVG labels and gridlines on translucent backgrounds. */
+.simulation-modal .recharts-cartesian-axis-tick-value,
+.simulation-modal .recharts-label,
+.simulation-modal .recharts-legend-item-text {
+  fill: #334155;
+  color: #334155 !important;
+}
+
+.simulation-modal .recharts-cartesian-grid line {
+  stroke: rgba(71, 85, 105, 0.25);
+}
+
+@media (max-width: 768px) {
+  .simulation-modal:not(.dataset-distribution-modal),
+  .simulation-modal.dataset-distribution-modal {
+    width: 100%;
+    max-height: 94vh;
+  }
+}
+
+/* =========================================================
+   FINAL SURFACE CONSISTENCY OVERRIDES
+   Glass modal shells, light headers, white content cards.
+   ========================================================= */
+
+/* Server header matches the Client Modal header exactly. */
+.server-modal .modal-header {
+  background: #e2e8f0;
+  color: #0f172a;
+  border-bottom: 1px solid #cbd5e1;
+}
+
+.server-modal .modal-header h2,
+.server-modal .server-modal-heading,
+.server-modal .server-modal-heading h2 {
+  color: #0f172a;
+}
+
+.server-modal .modal-header .modal-close-button {
+  color: #0f172a;
+}
+
+/* Dataset: preserve the transparent outer shell, but use solid
+   white cards for the actual content and charts. */
+.dataset-distribution-modal .dataset-modal-section,
+.dataset-distribution-modal .dataset-modal-configuration-content,
+.dataset-distribution-modal .dataset-chart-container,
+.dataset-distribution-modal .dataset-summary > div,
+.dataset-distribution-modal .dataset-controls,
+.dataset-distribution-modal .dataset-alpha-control {
+  background: #fff;
+  color: #0f172a;
+  border-radius: 0;
+}
+
+/* The dataset section headers can remain light slate to distinguish them. */
+.dataset-distribution-modal .dataset-modal-section-toggle {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.dataset-distribution-modal .dataset-modal-section-toggle:hover {
+  background: #e2e8f0;
+}
+
+/* Simulation Metrics: white chart and supporting content cards,
+   while the modal body and outer shell remain glass. */
+.simulation-modal:not(.dataset-distribution-modal) .simulation-chart,
+.simulation-modal:not(.dataset-distribution-modal) .simulation-metrics-controls,
+.simulation-modal:not(.dataset-distribution-modal) .simulation-metrics-caption,
+.simulation-modal:not(.dataset-distribution-modal) .simulation-metrics-empty,
+.simulation-modal:not(.dataset-distribution-modal) .simulation-section {
+  background: #fff;
+  color: #0f172a;
+  border-radius: 0;
+}
+
+/* Keep the status strip distinct, matching the Client Modal header. */
+.simulation-modal:not(.dataset-distribution-modal) .simulation-round-indicator {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+/* Recharts labels on white cards. */
+.simulation-modal:not(.dataset-distribution-modal) .recharts-cartesian-axis-tick-value,
+.simulation-modal:not(.dataset-distribution-modal) .recharts-label,
+.simulation-modal:not(.dataset-distribution-modal) .recharts-legend-item-text {
+  fill: #334155;
+  color: #334155 !important;
+}
+
+/* =========================================================
+   UNIFIED MODAL CHROME — Client Modal reference
+   Headers, footers, outlines and all square corners.
+   Keep at the very end of this stylesheet.
+   ========================================================= */
+:root {
+  --modal-chrome-header: #e2e8f0;
+  --modal-chrome-footer: #f8fafc;
+  --modal-chrome-border: #94a3b8;
+  --modal-chrome-divider: #cbd5e1;
+  --modal-chrome-ink: #0f172a;
+}
+
+/* Outer shells: preserve glass backgrounds from earlier rules. */
+.modal,
+.client-modal,
+.server-modal,
+.observed-clients-modal,
+.simulation-modal,
+.dataset-distribution-modal {
+  border: 1px solid var(--modal-chrome-border);
+  border-radius: 0;
+}
+
+/* Every modal's main header, including Dataset and Metrics. */
+.modal .modal-header,
+.client-modal .modal-header,
+.server-modal .modal-header,
+.observed-clients-modal .modal-header,
+.simulation-modal .simulation-modal-header,
+.dataset-distribution-modal .simulation-modal-header {
+  background: var(--modal-chrome-header);
+  color: var(--modal-chrome-ink);
+  border-bottom: 1px solid var(--modal-chrome-divider);
+  border-radius: 0;
+}
+
+.modal .modal-header h2,
+.simulation-modal .simulation-modal-header h2 {
+  color: var(--modal-chrome-ink);
+}
+
+/* Footers match Client Modal. */
+.modal .modal-footer,
+.client-modal .modal-footer,
+.server-modal .modal-footer,
+.observed-clients-modal .modal-footer,
+.simulation-modal .modal-footer,
+.dataset-distribution-modal .dataset-modal-footer {
+  background: var(--modal-chrome-footer);
+  color: var(--modal-chrome-ink);
+  border-top: 1px solid var(--modal-chrome-divider);
+  border-radius: 0;
+}
+
+/* Remove rounding from all descendants, including form fields, badges,
+   nested cards, tabs, buttons and chart containers. */
+.modal *,
+.client-modal *,
+.server-modal *,
+.observed-clients-modal *,
+.simulation-modal *,
+.dataset-distribution-modal * {
+  border-radius: 0;
 }

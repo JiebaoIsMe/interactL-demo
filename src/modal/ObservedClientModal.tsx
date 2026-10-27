@@ -59,6 +59,7 @@ function ObservedClientsModal({
   } = useDraggableModal();
 
   const [search, setSearch] = useState("");
+  const [historyExpanded, setHistoryExpanded] = useState(false);
   const [filterMode, setFilterMode] = useState<FilterMode>("observed");
   const [selectedClientId, setSelectedClientId] = useState<string | null>(
     null
@@ -121,6 +122,10 @@ function ObservedClientsModal({
     .reverse()
     .find((metric) => metric.status === "participated");
 
+  const latestValidationAccuracy = formatPercentage(
+    latestParticipatedRound?.validationAccuracy
+  );
+
   const isSelectedObserved =
     selectedClient !== undefined &&
     observedClientIds.includes(selectedClient.id);
@@ -160,6 +165,7 @@ function ObservedClientsModal({
           <button
             type="button"
             className="modal-close-button"
+            onPointerDown={(event) => event.stopPropagation()}
             onClick={onClose}
             aria-label="Close modal"
           >
@@ -184,83 +190,100 @@ function ObservedClientsModal({
           />
         </div>
 
-        <div className="observed-modal-body">
-          {/* Client selection table */}
-          <section className="observed-clients-list">
-            {filteredClients.length === 0 ? (
-              <p className="observed-modal-empty">No matching clients found.</p>
-            ) : (
-              <div className="observed-clients-table-wrapper">
-                <table className="observed-clients-table">
-                  <thead>
-                    <tr>
-                      <th>Client ID</th>
-                      <th>Client Name</th>
-                      <th>Client Group</th>
-                      <th>Info</th>
-                      <th>Action</th>
-                    </tr>
-                  </thead>
+        <div
+          className="observed-modal-body observed-modal-workspace"
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 320px), 1fr))",
+            alignItems: "start",
+            gap: 16,
+          }}
+        >
+          {/* Client browser: selection and observation are independent actions. */}
+          <section className="observed-clients-list" aria-label="Client browser" style={{ minWidth: 0 }}>
+            <div className="observed-modal-client-header">
+              <h3>Client Browser</h3>
+              <span>{filteredClients.length} clients</span>
+            </div>
 
-                  <tbody>
-                    {filteredClients.map((client) => {
-                      const isObserved = observedClientIds.includes(client.id);
+            <div
+              className="observed-clients-table-wrapper"
+              style={{ maxHeight: 520, overflowY: "auto" }}
+            >
+              {filteredClients.length === 0 ? (
+                <p className="observed-modal-empty">No matching clients found.</p>
+              ) : (
+                <div className="observed-client-browser-list">
+                  {filteredClients.map((client) => {
+                    const isObserved = observedClientIds.includes(client.id);
+                    const isSelected = selectedClientId === client.id;
 
-                      return (
-                        <tr
-                          key={client.id}
-                          className={
-                            selectedClientId === client.id ? "selected" : ""
-                          }
+                    return (
+                      <div
+                        key={client.id}
+                        className={`observed-client-browser-row${isSelected ? " selected" : ""}`}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 8,
+                          padding: 10,
+                          borderBottom: "1px solid #e2e8f0",
+                          background: isSelected ? "#ecfeff" : "#fff",
+                        }}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => setSelectedClientId(client.id)}
+                          aria-pressed={isSelected}
+                          aria-label={`View ${client.name}, ${client.id}`}
+                          style={{
+                            flex: 1,
+                            minWidth: 0,
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "flex-start",
+                            gap: 4,
+                            padding: 4,
+                            border: 0,
+                            borderRadius: 0,
+                            background: "transparent",
+                            textAlign: "left",
+                            cursor: "pointer",
+                          }}
                         >
-                          <td className="observed-client-id">{client.id}</td>
-                          <td>{client.name}</td>
-                          <td>
-                            <span className="observed-group-pill">
-                              Group {client.groupId}
-                            </span>
-                          </td>
-                          <td>
-                            <button
-                              type="button"
-                              className="observed-view-button"
-                              onClick={() => setSelectedClientId(client.id)}
-                            >
-                              View Info
-                            </button>
-                          </td>
-                          <td>
-                            <button
-                              type="button"
-                              className={`observed-action-button ${
-                                isObserved ? "remove" : "observe"
-                              }`}
-                              onClick={() => {
-                                if (isObserved) {
-                                  onUnobserve(client.id);
-
-                                  if (selectedClientId === client.id) {
-                                    setSelectedClientId(null);
-                                  }
-                                } else {
-                                  onObserve(client.id);
-                                }
-                              }}
-                            >
-                              {isObserved ? "Remove" : "Observe"}
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                          <strong className="observed-client-id">{client.id}</strong>
+                          <span style={{ color: "#334155", fontSize: 13 }}>
+                            {client.name}
+                          </span>
+                          <span style={{ color: "#64748b", fontSize: 12 }}>
+                            Group {client.groupId} · {isObserved ? "Observed" : "Not observed"}
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          className={`observed-action-button ${isObserved ? "remove" : "observe"}`}
+                          onClick={() => {
+                            if (isObserved) {
+                              onUnobserve(client.id);
+                            } else {
+                              onObserve(client.id);
+                            }
+                          }}
+                          aria-label={`${isObserved ? "Remove" : "Observe"} ${client.id}`}
+                          style={{ borderRadius: 0 }}
+                        >
+                          {isObserved ? "Remove" : "Observe"}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </section>
 
           {/* Individual client monitoring */}
-          <section className="observed-modal-details">
+          <section className="observed-modal-details" style={{ minWidth: 0 }}>
             {!selectedClient ? (
               <div className="observed-modal-placeholder">
                 Select a client to view its simulation history.
@@ -284,24 +307,31 @@ function ObservedClientsModal({
                   </span>
                 </div>
 
-                <div className="observed-modal-summary">
+                <div className="observed-modal-summary" aria-label="Client performance summary">
                   <div>
                     <span>Participation Rate</span>
                     <strong>{participationRate.toFixed(1)}%</strong>
+                    <small style={{ color: "#64748b", fontSize: 11 }}>
+                      Across simulation rounds
+                    </small>
                   </div>
 
                   <div>
                     <span>Completed Rounds</span>
                     <strong>{completedRounds}</strong>
+                    <small style={{ color: "#64748b", fontSize: 11 }}>
+                      Participated rounds
+                    </small>
                   </div>
 
                   <div>
                     <span>Latest Validation Accuracy</span>
-                    <strong>
-                      {formatPercentage(
-                        latestParticipatedRound?.validationAccuracy
-                      )}
-                    </strong>
+                    <strong>{latestValidationAccuracy}</strong>
+                    <small style={{ color: "#64748b", fontSize: 11 }}>
+                      {latestParticipatedRound
+                        ? `Round ${latestParticipatedRound.round}`
+                        : "No recorded accuracy"}
+                    </small>
                   </div>
                 </div>
 
@@ -321,7 +351,7 @@ function ObservedClientsModal({
                       partitions={[selectedClientPartition]}
                       numClasses={datasetPartition.numClasses}
                       mode="percentage"
-                      height={300}
+                      height={220}
                     />
                   ) : (
                     <p className="observed-modal-empty">
@@ -330,41 +360,74 @@ function ObservedClientsModal({
                   )}
                 </div>
 
-                <h4>Round History</h4>
+                <section className="observed-modal-history" aria-label="Round history">
+                  <button
+                    type="button"
+                    className="observed-modal-history-toggle"
+                    aria-expanded={historyExpanded}
+                    aria-controls="observed-client-round-history"
+                    onClick={() => setHistoryExpanded((expanded) => !expanded)}
+                    style={{
+                      width: "100%",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      gap: 12,
+                      padding: "12px 0",
+                      background: "transparent",
+                      border: 0,
+                      borderBottom: "1px solid #cbd5e1",
+                      borderRadius: 0,
+                      color: "#1e293b",
+                      fontWeight: 600,
+                      fontSize: 14,
+                      cursor: "pointer",
+                      textAlign: "left",
+                    }}
+                  >
+                    <span>Round History ({selectedClientHistory.length})</span>
+                    <span aria-hidden="true">{historyExpanded ? "−" : "+"}</span>
+                  </button>
 
-                <div className="observed-modal-table-wrapper">
-                  <table className="observed-modal-table">
-                    <thead>
-                      <tr>
-                        <th>Round</th>
-                        <th>Status</th>
-                        <th>Train Loss</th>
-                        <th>Train Accuracy</th>
-                        <th>Validation Loss</th>
-                        <th>Validation Accuracy</th>
-                      </tr>
-                    </thead>
-
-                    <tbody>
-                      {selectedClientHistory.map((metric) => (
-                        <tr key={metric.round}>
-                          <td>{metric.round}</td>
-                          <td>{metric.status}</td>
-                          <td>{formatNumber(metric.trainLoss)}</td>
-                          <td>{formatPercentage(metric.trainAccuracy)}</td>
-                          <td>{formatNumber(metric.validationLoss)}</td>
-                          <td>{formatPercentage(metric.validationAccuracy)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                {selectedClientHistory.length === 0 && (
-                  <p className="observed-modal-empty">
-                    No simulation history available.
-                  </p>
-                )}
+                  <div
+                    id="observed-client-round-history"
+                    hidden={!historyExpanded}
+                    style={{ paddingTop: historyExpanded ? 12 : 0 }}
+                  >
+                      {selectedClientHistory.length === 0 ? (
+                        <p className="observed-modal-empty">
+                          No simulation history available.
+                        </p>
+                      ) : (
+                        <div className="observed-modal-table-wrapper">
+                          <table className="observed-modal-table">
+                            <thead>
+                              <tr>
+                                <th>Round</th>
+                                <th>Status</th>
+                                <th>Train Loss</th>
+                                <th>Train Accuracy</th>
+                                <th>Validation Loss</th>
+                                <th>Validation Accuracy</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {selectedClientHistory.map((metric) => (
+                                <tr key={metric.round}>
+                                  <td>{metric.round}</td>
+                                  <td>{metric.status}</td>
+                                  <td>{formatNumber(metric.trainLoss)}</td>
+                                  <td>{formatPercentage(metric.trainAccuracy)}</td>
+                                  <td>{formatNumber(metric.validationLoss)}</td>
+                                  <td>{formatPercentage(metric.validationAccuracy)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                  </div>
+                </section>
               </>
             )}
           </section>

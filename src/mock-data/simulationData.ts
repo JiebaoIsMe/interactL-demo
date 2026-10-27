@@ -19,8 +19,8 @@ export type SimulationPhase =
   | "idle"
   | "selecting"
   | "training"
-  | "uploading"
   | "aggregating"
+  | "evaluating"
   | "completed";
 
 export type ClientRoundMetric = {

@@ -256,3 +256,98 @@
     flex-wrap: wrap;
   }
 }
+
+.simulation-control-stack {
+  position: absolute;
+
+  bottom: 20px;
+  top: auto;
+
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+
+  width: max-content;
+  max-width: calc(100% - 24px);
+  pointer-events: none;
+}
+
+.simulation-control-stack > .hud-actions {
+  position: relative;
+  top: auto;
+  right: auto;
+  bottom: auto;
+  left: auto;
+  transform: none;
+  margin: 0;
+  pointer-events: auto;
+}
+.simulation-progress-hud {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+
+  width: max-content;
+  max-width: 100%;
+  padding: 10px 16px;
+
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 600;
+  color: #ffffff;
+
+  /* Transparent gray glass */
+  background: rgba(100, 116, 139, 0.35);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 0;
+
+  /* Soft glass glow */
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.35);
+}
+
+.simulation-progress-hud strong,
+.simulation-progress-hud > span:not(.simulation-progress-badge) {
+  color: black;
+}
+
+/* Status badge */
+.simulation-progress-badge {
+  padding: 4px 9px;
+  border-radius: 0;
+  color: #000000;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-shadow: none;
+}
+
+.simulation-progress-badge.running {
+  background: #a3e635;
+  box-shadow: 0 0 10px rgba(163, 230, 53, 0.5);
+}
+
+.simulation-progress-badge.paused {
+  background: #facc15;
+  box-shadow: 0 0 10px rgba(250, 204, 21, 0.5);
+}
+
+.simulation-progress-badge.completed {
+  background: #86efac;
+}
+
+.simulation-progress-badge.idle {
+  background: #94a3b8;
+}

@@ -2,6 +2,7 @@
 import { Users, Eye, Server, Network } from "lucide-react";
 
 import { useState } from "react";
+import type { Dispatch, SetStateAction } from "react";
 import { createPortal } from "react-dom";
 
 import ServerNode from "./ServerNode";
@@ -25,7 +26,6 @@ import type {
 import {
   clients as initialClients,
   clientGroups,
-  initialObservedClients,
   type ClientNode as ClientNodeType,
   type ClientSettings,
 } from "../mock-data/client";
@@ -48,9 +48,18 @@ type ModalType = "client" | "server" | "observed" | null;
 type NodeProps = {
   simulationState: SimulationState;
   datasetPartition: DatasetPartition;
+
+  // Shared observation state from Workspace.
+  observedClientIds: string[];
+  setObservedClientIds: Dispatch<SetStateAction<string[]>>;
 };
 
-function Node({ simulationState, datasetPartition }: NodeProps) {
+function Node({
+  simulationState,
+  datasetPartition,
+  observedClientIds,
+  setObservedClientIds,
+}: NodeProps) {
   // Client group configurations
   const [clientNodes, setClientNodes] = useState<ClientNodeType[]>(
     () => structuredClone(clientGroups)
@@ -69,14 +78,9 @@ function Node({ simulationState, datasetPartition }: NodeProps) {
   const [selectedNodeId, setSelectedNodeId] =
     useState<number | null>(null);
 
-  // Observed clients (visual monitoring only)
-  const [observedClientIds, setObservedClientIds] =
-    useState<string[]>(
-      () => initialObservedClients.map((client) => client.clientId)
-    );
-
-  // Observed Client
-  const [observeNodeSelected, setObserveNodeSelected] = useState(false);
+  // Observed Client node selection
+  const [observeNodeSelected, setObserveNodeSelected] =
+    useState(false);
 
   // Modal visibility
   const [activeModal, setActiveModal] =
@@ -84,8 +88,11 @@ function Node({ simulationState, datasetPartition }: NodeProps) {
 
   const clientTotal = clients.length;
 
+  // Observation state is now managed by Workspace.
+  // Do not create another observedClientIds useState here.
+
   function observeClient(clientId: string) {
-    // Validate client IDs before adding them to the observation list.
+    // Validate client IDs before adding them.
     if (!clients.some((client) => client.id === clientId)) {
       return;
     }
@@ -173,7 +180,7 @@ function Node({ simulationState, datasetPartition }: NodeProps) {
         />
       </HudDockItems>
 
-      {/* Central server node*/}
+      {/* Central server node */}
       <ServerNode onOpen={openServerModal} />
 
       {/* Client group nodes */}
@@ -202,7 +209,7 @@ function Node({ simulationState, datasetPartition }: NodeProps) {
         );
       })}
 
-      {/*Observed Clients Node*/}
+      {/* Observed Clients Node */}
       <ObservedClientsNode
         x={observedPosition.x}
         y={observedPosition.y}
@@ -216,19 +223,16 @@ function Node({ simulationState, datasetPartition }: NodeProps) {
 
       {/* Server configuration modal */}
       {activeModal === "server" && (
-        createPortal(
-          <ServerModal
-            settings={serverSettings}
-            clientTotal={clientTotal}
-            onSave={saveServerSettings}
-            onClose={closeModal}
-          />,
-          document.body
-        )
+        <ServerModal
+          settings={serverSettings}
+          clientTotal={clientTotal}
+          onSave={saveServerSettings}
+          onClose={closeModal}
+        />
       )}
 
       {/* Client configuration modal */}
-      {activeModal === "client" && (
+      {activeModal === "client" &&
         createPortal(
           <ClientModal
             groups={clientNodes}
@@ -241,8 +245,7 @@ function Node({ simulationState, datasetPartition }: NodeProps) {
             onClose={closeModal}
           />,
           document.body
-        )
-      )}
+        )}
 
       {/* Observed Client configuration modal */}
       {activeModal === "observed" && (

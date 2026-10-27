@@ -44,23 +44,23 @@ function Sidebar() {
         <button
           type="button"
           className="sidebar-item"
-          title="Drag & Drop — Coming soon"
-          aria-label="Drag & Drop — Coming soon"
+          title="Server Logs — Coming soon"
+          aria-label="Server Logs — Coming soon"
           disabled
         >
           <Move size={20} aria-hidden="true" />
-          {isExpanded && <span>Drag & Drop</span>}
+          {isExpanded && <span>Server Logs</span>}
         </button>
 
         <button
           type="button"
           className="sidebar-item"
-          title="Card — Coming soon"
-          aria-label="Card — Coming soon"
+          title="Classroom — Coming soon"
+          aria-label="Classroom — Coming soon"
           disabled
         >
           <PanelsTopLeft size={20} aria-hidden="true" />
-          {isExpanded && <span>Card</span>}
+          {isExpanded && <span>Classroom</span>}
         </button>
       </nav>
     </aside>

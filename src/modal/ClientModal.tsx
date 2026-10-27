@@ -19,7 +19,9 @@ import ModalDropdown from "../components/modal-dropdown";
 import ModalInput from "../components/modal-input";
 
 import { useDraggableModal } from "./useDraggableModel";
+
 type ClientModalMode = "group" | "client" | "observed";
+type ClientView = "clients" | "settings";
 
 type ClientModalProps = {
   groups: ClientNode[];
@@ -37,8 +39,17 @@ type ClientModalProps = {
   onClose: () => void;
 };
 
-function ClientModal({ groups,clients,selectedGroupId, selectedClientId, observedClientIds, onObserve, onUnobserve, onSaveGroup, onClose }: ClientModalProps) {
-
+function ClientModal({
+  groups,
+  clients,
+  selectedGroupId,
+  selectedClientId,
+  observedClientIds,
+  onObserve,
+  onUnobserve,
+  onSaveGroup,
+  onClose,
+}: ClientModalProps) {
   const {
     modalRef,
     position,
@@ -47,29 +58,40 @@ function ClientModal({ groups,clients,selectedGroupId, selectedClientId, observe
     handlePointerUp,
   } = useDraggableModal();
 
-  const [groupId, setGroupId] = useState<number | null>(
-    selectedGroupId ?? null
-  );
+  const [activeView, setActiveView] =
+    useState<ClientView>("clients");
+
+  const [filterGroupId, setFilterGroupId] =
+    useState<number | null>(selectedGroupId ?? null);
+
+  const [settingsGroupId, setSettingsGroupId] =
+    useState<number | null>(
+      selectedGroupId ?? groups[0]?.id ?? null
+    );
 
   const [search, setSearch] = useState(
     selectedClientId ?? ""
   );
 
-  const [focusedClientId, setFocusedClientId] = useState<
-    string | null
-  >(selectedClientId ?? null);
+  const [focusedClientId, setFocusedClientId] =
+    useState<string | null>(
+      selectedClientId ?? null
+    );
 
   const [observedOnly, setObservedOnly] = useState(false);
 
-  const selectedGroup =
-    groups.find((group) => group.id === groupId) ??
-    groups[0];
-
+  const selectedGroup = groups.find(
+    (group) => group.id === settingsGroupId
+  );
 
   const [draftSettings, setDraftSettings] =
     useState<ClientSettings>(() =>
       structuredClone(
-        selectedGroup?.settings ?? defaultClientSettings
+        groups.find(
+          (group) =>
+            group.id ===
+            (selectedGroupId ?? groups[0]?.id)
+        )?.settings ?? defaultClientSettings
       )
     );
 
@@ -79,11 +101,14 @@ function ClientModal({ groups,clients,selectedGroupId, selectedClientId, observe
 
   const matchingClients = clients.filter((client) => {
     const matchesGroup =
-      groupId === null || client.groupId === groupId;
+      filterGroupId === null ||
+      client.groupId === filterGroupId;
+
+    const query = search.trim().toLowerCase();
 
     const matchesSearch =
-      client.id.toLowerCase().includes(search.toLowerCase()) ||
-      client.name.toLowerCase().includes(search.toLowerCase());
+      client.id.toLowerCase().includes(query) ||
+      client.name.toLowerCase().includes(query);
 
     const matchesObservation =
       !observedOnly ||
@@ -117,40 +142,32 @@ function ClientModal({ groups,clients,selectedGroupId, selectedClientId, observe
   const latestMetric = [...clientHistory]
     .reverse()
     .find(
-      (metric) =>
-        metric.status === "participated"
+      (metric) => metric.status === "participated"
     );
+
   function handleSelectClient(client: Client) {
-
-    const nextGroup = groups.find(
-      (group) => group.id === client.groupId
-    );
-
     setFocusedClientId(client.id);
-    setGroupId(client.groupId);
-    setSearch(client.id);
-
-    if (nextGroup) {
-      setDraftSettings(structuredClone(nextGroup.settings))
-    }
   }
 
   function handleGroupChange(value: string) {
+    setFilterGroupId(
+      value === "all" ? null : Number(value)
+    );
+  }
 
-    const nextGroupId = value === "all" ? null : Number(value);
+  function handleSettingsGroupChange(value: string) {
+    const nextGroupId = Number(value);
 
-    const nextGroup =
-      groups.find((group) => group.id === nextGroupId) ??
-      groups[0];
+    const nextGroup = groups.find(
+      (group) => group.id === nextGroupId
+    );
 
-    // setGroupId(value === "all" ? null : Number(value));
-    setGroupId(nextGroupId);
-    setFocusedClientId(null);
-    setSearch("");
+    if (!nextGroup) return;
 
-    if (nextGroup) {
-      setDraftSettings(structuredClone(nextGroup.settings));
-    }
+    setSettingsGroupId(nextGroupId);
+    setDraftSettings(
+      structuredClone(nextGroup.settings)
+    );
   }
 
   function formatMetric(value?: number) {
@@ -166,7 +183,9 @@ function ClientModal({ groups,clients,selectedGroupId, selectedClientId, observe
   return (
     <div
       className="modal-overlay"
-      onMouseDown={(event) => event.stopPropagation()}
+      onMouseDown={(event) =>
+        event.stopPropagation()
+      }
       onClick={(event) => {
         if (event.target === event.currentTarget) {
           onClose();
@@ -180,7 +199,7 @@ function ClientModal({ groups,clients,selectedGroupId, selectedClientId, observe
         aria-modal="true"
         aria-label="Client Configuration"
         style={{
-          transform: `translate(${position.x}px, ${position.y}px)`
+          transform: `translate(${position.x}px, ${position.y}px)`,
         }}
       >
         <header
@@ -190,7 +209,7 @@ function ClientModal({ groups,clients,selectedGroupId, selectedClientId, observe
           onPointerUp={handlePointerUp}
           onPointerCancel={handlePointerUp}
         >
-          <h2>Client Configuration</h2>
+          <h2>Client Manager</h2>
 
           <button
             type="button"
@@ -202,211 +221,324 @@ function ClientModal({ groups,clients,selectedGroupId, selectedClientId, observe
           </button>
         </header>
 
-        <div className="client-modal-browser">
-          <div className="client-modal-controls">
+        {/* Main navigation */}
+        <nav
+          className="client-view-tabs"
+          aria-label="Client manager views"
+        >
+          <button
+            type="button"
+            className={
+              activeView === "clients" ? "active" : ""
+            }
+            aria-current={
+              activeView === "clients"
+                ? "page"
+                : undefined
+            }
+            onClick={() =>
+              setActiveView("clients")
+            }
+          >
+            Clients
+          </button>
+
+          <button
+            type="button"
+            className={
+              activeView === "settings" ? "active" : ""
+            }
+            aria-current={
+              activeView === "settings"
+                ? "page"
+                : undefined
+            }
+            onClick={() =>
+              setActiveView("settings")
+            }
+          >
+            Group Settings
+          </button>
+        </nav>
+
+        {/* Clients view */}
+        {activeView === "clients" && (
+          <div className="client-modal-browser">
+            <div className="client-modal-controls">
               <ModalDropdown
                 label="Client Group"
-                value={String(groupId ?? "all")}
+                value={String(
+                  filterGroupId ?? "all"
+                )}
                 onChange={handleGroupChange}
                 options={[
-                  { value: "all", label: "All Groups" },
+                  {
+                    value: "all",
+                    label: "All Groups",
+                  },
                   ...groups.map((group) => ({
                     value: String(group.id),
                     label: `Group ${group.id} (${group.clientIds.length} clients)`,
                   })),
                 ]}
               />
+            </div>
 
-              <ModalInput
-                type="search"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search by client ID or name..."
-                aria-label="Search clients"
-              />
-          </div>
-
-          <label className="client-observed-filter">
-            <input
-              type="checkbox"
-              checked={observedOnly}
+            <ModalInput
+              type="search"
+              value={search}
               onChange={(event) =>
-                setObservedOnly(event.target.checked)
+                setSearch(event.target.value)
               }
+              placeholder="Search by client ID or name..."
+              aria-label="Search clients"
             />
-            Observed clients only
-          </label>
 
-          <div className="client-modal-list">
-            {matchingClients.map((client) => {
-              const observed =
-                observedClientIds.includes(client.id);
+            <label className="client-observed-filter">
+              <input
+                type="checkbox"
+                checked={observedOnly}
+                onChange={(event) =>
+                  setObservedOnly(
+                    event.target.checked
+                  )
+                }
+              />
+              Observed clients only
+            </label>
 
-              return (
-                <div
-                  key={client.id}
-                  className={`client-modal-row ${
-                    focusedClientId === client.id
-                      ? "active"
-                      : ""
-                  }`}
-                >
-                  <button
-                    type="button"
-                    className="client-modal-select"
-                    onClick={() =>
-                      handleSelectClient(client)
-                    }
+            <div className="client-modal-list">
+              {matchingClients.map((client) => {
+                const observed =
+                  observedClientIds.includes(
+                    client.id
+                  );
+
+                return (
+                  <div
+                    key={client.id}
+                    className={`client-modal-row ${
+                      focusedClientId === client.id
+                        ? "active"
+                        : ""
+                    }`}
                   >
-                    <strong>{client.id}</strong>
-                    <span>{client.name}</span>
-                    <small>
-                      Group {client.groupId}
-                    </small>
-                  </button>
+                    <button
+                      type="button"
+                      className="client-modal-select"
+                      onClick={() =>
+                        handleSelectClient(client)
+                      }
+                    >
+                      <strong>{client.id}</strong>
 
-                  <button
-                    type="button"
-                    onClick={() =>
-                      observed
-                        ? onUnobserve(client.id)
-                        : onObserve(client.id)
-                    }
-                  >
-                    {observed ? "Remove" : "Observe"}
-                  </button>
+                      <span>{client.name}</span>
+
+                      <small>
+                        Group {client.groupId}
+                      </small>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        observed
+                          ? onUnobserve(client.id)
+                          : onObserve(client.id)
+                      }
+                    >
+                      {observed
+                        ? "Remove"
+                        : "Observe"}
+                    </button>
+                  </div>
+                );
+              })}
+
+              {matchingClients.length === 0 && (
+                <p>No matching clients found.</p>
+              )}
+            </div>
+
+            {/* Existing client monitoring */}
+            {focusedClient && (
+              <section className="client-monitoring">
+                <h3>
+                  {focusedClient.name} (
+                  {focusedClient.id})
+                </h3>
+
+                <p>
+                  Original Group:{" "}
+                  {focusedClient.groupId}
+                </p>
+
+                <div className="client-monitoring-summary">
+                  <div>
+                    <strong>
+                      {participationRate.toFixed(1)}%
+                    </strong>
+                    <span>
+                      Participation Rate
+                    </span>
+                  </div>
+
+                  <div>
+                    <strong>
+                      {completedRounds}
+                    </strong>
+                    <span>
+                      Completed Rounds
+                    </span>
+                  </div>
+
+                  <div>
+                    <strong>
+                      {latestMetric
+                        ?.validationAccuracy !==
+                      undefined
+                        ? `${(
+                            latestMetric.validationAccuracy *
+                            100
+                          ).toFixed(1)}%`
+                        : "—"}
+                    </strong>
+                    <span>
+                      Latest Validation Accuracy
+                    </span>
+                  </div>
                 </div>
-              );
-            })}
 
-            {matchingClients.length === 0 && (
-              <p>No matching clients found.</p>
+                <h4>
+                  Round Participation History
+                </h4>
+
+                <div className="client-history-scroll">
+                  <table className="client-history-table">
+                    <thead>
+                      <tr>
+                        <th>Round</th>
+                        <th>Status</th>
+                        <th>Train Loss</th>
+                        <th>Train Accuracy</th>
+                        <th>Validation Loss</th>
+                        <th>
+                          Validation Accuracy
+                        </th>
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      {clientHistory.map(
+                        (metric) => (
+                          <tr key={metric.round}>
+                            <td>
+                              {metric.round}
+                            </td>
+
+                            <td>
+                              {metric.status}
+                            </td>
+
+                            <td>
+                              {formatMetric(
+                                metric.trainLoss
+                              )}
+                            </td>
+
+                            <td>
+                              {metric.trainAccuracy ===
+                              undefined
+                                ? "—"
+                                : `${(
+                                    metric.trainAccuracy *
+                                    100
+                                  ).toFixed(1)}%`}
+                            </td>
+
+                            <td>
+                              {formatMetric(
+                                metric.validationLoss
+                              )}
+                            </td>
+
+                            <td>
+                              {metric.validationAccuracy ===
+                              undefined
+                                ? "—"
+                                : `${(
+                                    metric.validationAccuracy *
+                                    100
+                                  ).toFixed(1)}%`}
+                            </td>
+                          </tr>
+                        )
+                      )}
+                    </tbody>
+                  </table>
+
+                  {clientHistory.length === 0 && (
+                    <p>
+                      No simulation history available.
+                    </p>
+                  )}
+                </div>
+              </section>
             )}
           </div>
+        )}
 
-          {focusedClient && (
-            <section className="client-monitoring">
-              <h3>
-                {focusedClient.name} (
-                {focusedClient.id})
-              </h3>
-
-              <p>
-                Original Group: {focusedClient.groupId}
-              </p>
-
-              <div className="client-monitoring-summary">
-                <div>
-                  <strong>
-                    {participationRate.toFixed(1)}%
-                  </strong>
-                  <span>Participation Rate</span>
-                </div>
-
-                <div>
-                  <strong>{completedRounds}</strong>
-                  <span>Completed Rounds</span>
-                </div>
-
-                <div>
-                  <strong>
-                    {latestMetric?.validationAccuracy !==
-                    undefined
-                      ? `${(
-                          latestMetric.validationAccuracy *
-                          100
-                        ).toFixed(1)}%`
-                      : "—"}
-                  </strong>
-                  <span>Latest Validation Accuracy</span>
-                </div>
-              </div>
-
-              <h4>Round Participation History</h4>
-
-              <div className="client-history-scroll">
-                <table className="client-history-table">
-                  <thead>
-                    <tr>
-                      <th>Round</th>
-                      <th>Status</th>
-                      <th>Train Loss</th>
-                      <th>Train Accuracy</th>
-                      <th>Validation Loss</th>
-                      <th>Validation Accuracy</th>
-                    </tr>
-                  </thead>
-
-                  <tbody>
-                    {clientHistory.map((metric) => (
-                      <tr key={metric.round}>
-                        <td>{metric.round}</td>
-                        <td>{metric.status}</td>
-                        <td>
-                          {formatMetric(
-                            metric.trainLoss
-                          )}
-                        </td>
-                        <td>
-                          {metric.trainAccuracy ===
-                          undefined
-                            ? "—"
-                            : `${(
-                                metric.trainAccuracy *
-                                100
-                              ).toFixed(1)}%`}
-                        </td>
-                        <td>
-                          {formatMetric(
-                            metric.validationLoss
-                          )}
-                        </td>
-                        <td>
-                          {metric.validationAccuracy ===
-                          undefined
-                            ? "—"
-                            : `${(
-                                metric.validationAccuracy *
-                                100
-                              ).toFixed(1)}%`}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-
-                {clientHistory.length === 0 && (
-                  <p>No simulation history available.</p>
+        {/* Group Settings view */}
+        {activeView === "settings" && (
+          <section className="client-settings-view">
+            <div className="client-settings-group-selector">
+              <ModalDropdown
+                label="Configure Group"
+                value={String(
+                  settingsGroupId
                 )}
-              </div>
-            </section>
-          )}
-        </div>
+                onChange={
+                  handleSettingsGroupChange
+                }
+                options={groups.map(
+                  (group) => ({
+                    value: String(group.id),
+                    label: `Group ${group.id} (${group.clientIds.length} clients)`,
+                  })
+                )}
+              />
+            </div>
 
-        {/* Client group settings */}
-        <SettingsTabs
-          mode="client"
-          settings={draftSettings}
-          groupId={selectedGroup.id}
-          clientTotal={selectedGroup.clientIds.length}
-          onChange={setDraftSettings}
-        />
+            <SettingsTabs
+              mode="client"
+              settings={draftSettings}
+              groupId={selectedGroup.id}
+              clientTotal={
+                selectedGroup.clientIds.length
+              }
+              onChange={setDraftSettings}
+            />
+          </section>
+        )}
 
-        {/* Modal footer */}
-        <footer className="modal-footer">
+        {/* Footer */}
+        <footer className="modal-footer client-modal-footer">
           <button
             type="button"
             onClick={onClose}
           >
-            Cancel
+            Close
           </button>
 
           <button
             type="button"
             className="modal-save"
-            onClick={() =>
-              onSaveGroup(selectedGroup.id, draftSettings)
-            }
+            onClick={() => {
+              if (!selectedGroup) return;
+
+              onSaveGroup(selectedGroup.id, draftSettings);
+            }}
+            disabled={!selectedGroup}
           >
             Save Changes
           </button>
@@ -415,4 +547,5 @@ function ClientModal({ groups,clients,selectedGroupId, selectedClientId, observe
     </div>
   );
 }
+
 export default ClientModal;
