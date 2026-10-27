@@ -1,16 +1,25 @@
 
 import { Focus, Minus, Plus } from "lucide-react";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+
 import type {
-  MouseEvent as ReactMouseEvent,
+  PointerEvent as ReactPointerEvent,
   WheelEvent as ReactWheelEvent,
 } from "react";
 
 import Node from "../node/Node";
 
 import HudButton from "../components/hud-button";
-import { HudDock, HudDockProvider } from "../components/hud-dock";
+import {
+  HudDock,
+  HudDockProvider,
+} from "../components/hud-dock";
 
 import SimulationEngine, {
   createInitialState,
@@ -18,7 +27,9 @@ import SimulationEngine, {
 
 import { initialObservedClients } from "../mock-data/client";
 
-import type { SimulationState } from "../mock-data/simulationData";
+import type {
+  SimulationState,
+} from "../mock-data/simulationData";
 
 import {
   defaultPartitionConfig,
@@ -36,23 +47,31 @@ type Position = {
   y: number;
 };
 
+type DragStart = {
+  pointerId: number;
+  clientX: number;
+  clientY: number;
+  positionX: number;
+  positionY: number;
+};
+
 function Workspace() {
-  const [datasetPartition, setDatasetPartition] = useState(() =>
-    generateDatasetPartition(defaultPartitionConfig)
+  const [datasetPartition, setDatasetPartition] = useState(
+    () => generateDatasetPartition(defaultPartitionConfig)
   );
 
   const [simulationState, setSimulationState] =
     useState<SimulationState>(createInitialState);
 
-  // Shared observed-client state.
-  // Used by Node and SimulationEngine.
   const [observedClientIds, setObservedClientIds] =
     useState<string[]>(
-      () => initialObservedClients.map((client) => client.clientId)
+      () =>
+        initialObservedClients.map(
+          (client) => client.clientId
+        )
     );
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const workspaceRef = useRef<HTMLDivElement>(null);
 
   const [zoom, setZoom] = useState(1);
 
@@ -63,24 +82,20 @@ function Workspace() {
 
   const [isDragging, setIsDragging] = useState(false);
 
-  const dragStartRef = useRef<{
-    mouseX: number;
-    mouseY: number;
-    positionX: number;
-    positionY: number;
-  } | null>(null);
+  const dragStartRef = useRef<DragStart | null>(null);
 
   const clampZoom = useCallback((value: number) => {
     return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, value));
   }, []);
 
   const clampPosition = useCallback(
-    (nextPosition: Position, nextZoom: number): Position => {
+    (
+      nextPosition: Position,
+      nextZoom: number
+    ): Position => {
       const container = containerRef.current;
 
-      if (!container) {
-        return nextPosition;
-      }
+      if (!container) return nextPosition;
 
       const { width, height } =
         container.getBoundingClientRect();
@@ -88,22 +103,32 @@ function Workspace() {
       const scaledWidth = WORKSPACE_SIZE * nextZoom;
       const scaledHeight = WORKSPACE_SIZE * nextZoom;
 
-      const minX = Math.min(0, width - scaledWidth);
-      const minY = Math.min(0, height - scaledHeight);
+      const clampAxis = (
+        value: number,
+        viewportSize: number,
+        contentSize: number
+      ) => {
+        if (contentSize <= viewportSize) {
+          return (viewportSize - contentSize) / 2;
+        }
 
-      const maxX = Math.max(
-        0,
-        (width - scaledWidth) / 2
-      );
-
-      const maxY = Math.max(
-        0,
-        (height - scaledHeight) / 2
-      );
+        return Math.max(
+          viewportSize - contentSize,
+          Math.min(0, value)
+        );
+      };
 
       return {
-        x: Math.min(maxX, Math.max(minX, nextPosition.x)),
-        y: Math.min(maxY, Math.max(minY, nextPosition.y)),
+        x: clampAxis(
+          nextPosition.x,
+          width,
+          scaledWidth
+        ),
+        y: clampAxis(
+          nextPosition.y,
+          height,
+          scaledHeight
+        ),
       };
     },
     []
@@ -125,12 +150,12 @@ function Workspace() {
     });
   }, []);
 
-  // Center the workspace on mount.
+  // Center workspace on mount.
   useEffect(() => {
     recenterWorkspace();
   }, [recenterWorkspace]);
 
-  // Keep the workspace within bounds when the container resizes.
+  // Keep position valid when the viewport changes.
   useEffect(() => {
     const container = containerRef.current;
 
@@ -158,30 +183,30 @@ function Workspace() {
       if (!container) return;
 
       const rect = container.getBoundingClientRect();
-
       const newZoom = clampZoom(nextZoom);
 
-      // Mouse position relative to the container.
       const mouseX = clientX - rect.left;
       const mouseY = clientY - rect.top;
 
-      // Canvas coordinate currently under the mouse.
       const canvasX = (mouseX - position.x) / zoom;
       const canvasY = (mouseY - position.y) / zoom;
 
-      // Preserve the same canvas point under the cursor.
       const nextPosition = {
         x: mouseX - canvasX * newZoom,
         y: mouseY - canvasY * newZoom,
       };
 
       setZoom(newZoom);
-
       setPosition(
         clampPosition(nextPosition, newZoom)
       );
     },
-    [zoom, position, clampZoom, clampPosition]
+    [
+      zoom,
+      position,
+      clampZoom,
+      clampPosition,
+    ]
   );
 
   const zoomAtCenter = useCallback(
@@ -204,13 +229,13 @@ function Workspace() {
   const handleWheel = (
     event: ReactWheelEvent<HTMLDivElement>
   ) => {
-    // Ctrl + scroll to zoom.
     if (!event.ctrlKey) return;
 
     event.preventDefault();
     event.stopPropagation();
 
-    const direction = event.deltaY < 0 ? 1 : -1;
+    const direction =
+      event.deltaY < 0 ? 1 : -1;
 
     zoomAtPoint(
       zoom + direction * ZOOM_STEP,
@@ -219,16 +244,42 @@ function Workspace() {
     );
   };
 
-  const handleMouseDown = (
-    event: ReactMouseEvent<HTMLDivElement>
+  // Desktop left-click and mobile single-finger drag.
+  const handlePointerDown = (
+    event: ReactPointerEvent<HTMLDivElement>
   ) => {
-    // Only drag with the left mouse button.
-    if (event.button !== 0) return;
-
-    // Ignore buttons, inputs, and interactive elements.
     if (
-      (event.target as HTMLElement).closest(
-        "button, input, select, textarea, .client-node, .server-node"
+      event.pointerType === "mouse" &&
+      event.button !== 0
+    ) {
+      return;
+    }
+
+    if (!event.isPrimary) return;
+    if (dragStartRef.current !== null) return;
+
+    const target = event.target as HTMLElement;
+
+    // Preserve node and control interactions.
+    if (
+      target.closest(
+        [
+          "button",
+          "input",
+          "select",
+          "textarea",
+          "a",
+          "[role='button']",
+          "[contenteditable='true']",
+          ".client-node",
+          ".server-node",
+          ".observed-clients-node",
+          ".modal",
+          ".hud-actions",
+          ".hud-dock",
+          ".hud-zoom",
+          ".simulation-control-stack",
+        ].join(",")
       )
     ) {
       return;
@@ -237,67 +288,88 @@ function Workspace() {
     event.preventDefault();
 
     dragStartRef.current = {
-      mouseX: event.clientX,
-      mouseY: event.clientY,
+      pointerId: event.pointerId,
+      clientX: event.clientX,
+      clientY: event.clientY,
       positionX: position.x,
       positionY: position.y,
     };
 
+    event.currentTarget.setPointerCapture(
+      event.pointerId
+    );
+
     setIsDragging(true);
   };
 
-  // Workspace drag.
-  useEffect(() => {
-    const workspace = workspaceRef.current;
+  const handlePointerMove = (
+    event: ReactPointerEvent<HTMLDivElement>
+  ) => {
+    const start = dragStartRef.current;
 
-    if (!workspace || !isDragging) return;
+    if (
+      !start ||
+      start.pointerId !== event.pointerId
+    ) {
+      return;
+    }
 
-    const handleMouseMove = (event: MouseEvent) => {
-      const start = dragStartRef.current;
+    const deltaX =
+      event.clientX - start.clientX;
 
-      if (!start) return;
+    const deltaY =
+      event.clientY - start.clientY;
 
-      const deltaX = event.clientX - start.mouseX;
-      const deltaY = event.clientY - start.mouseY;
-
-      setPosition(
-        clampPosition(
-          {
-            x: start.positionX + deltaX,
-            y: start.positionY + deltaY,
-          },
-          zoom
-        )
-      );
-    };
-
-    const handleMouseUp = () => {
-      dragStartRef.current = null;
-      setIsDragging(false);
-    };
-
-    workspace.addEventListener(
-      "mousemove",
-      handleMouseMove
+    setPosition(
+      clampPosition(
+        {
+          x: start.positionX + deltaX,
+          y: start.positionY + deltaY,
+        },
+        zoom
+      )
     );
+  };
 
-    workspace.addEventListener(
-      "mouseup",
-      handleMouseUp
-    );
+  const finishDragging = (
+    event: ReactPointerEvent<HTMLDivElement>
+  ) => {
+    const start = dragStartRef.current;
 
-    return () => {
-      workspace.removeEventListener(
-        "mousemove",
-        handleMouseMove
+    if (
+      !start ||
+      start.pointerId !== event.pointerId
+    ) {
+      return;
+    }
+
+    dragStartRef.current = null;
+    setIsDragging(false);
+
+    if (
+      event.currentTarget.hasPointerCapture(
+        event.pointerId
+      )
+    ) {
+      event.currentTarget.releasePointerCapture(
+        event.pointerId
       );
+    }
+  };
 
-      workspace.removeEventListener(
-        "mouseup",
-        handleMouseUp
-      );
-    };
-  }, [isDragging, zoom, clampPosition]);
+  const handleLostPointerCapture = (
+    event: ReactPointerEvent<HTMLDivElement>
+  ) => {
+    if (
+      dragStartRef.current?.pointerId !==
+      event.pointerId
+    ) {
+      return;
+    }
+
+    dragStartRef.current = null;
+    setIsDragging(false);
+  };
 
   return (
     <div className="mainlayout">
@@ -306,7 +378,7 @@ function Workspace() {
         className="container"
         onWheel={handleWheel}
       >
-        {/* Workspace HUD controls */}
+        {/* Workspace zoom controls */}
         <div className="hud-zoom hud-glass">
           <HudButton
             icon={Plus}
@@ -333,9 +405,8 @@ function Workspace() {
 
         <HudDock />
 
-        {/* Zoomable and draggable workspace */}
+        {/* Desktop and mobile draggable workspace */}
         <div
-          ref={workspaceRef}
           className={`workspace ${
             isDragging ? "dragging" : ""
           }`}
@@ -344,18 +415,27 @@ function Workspace() {
             height: WORKSPACE_SIZE,
             transform: `translate(${position.x}px, ${position.y}px) scale(${zoom})`,
             transformOrigin: "top left",
+            touchAction: "none",
           }}
-          onMouseDown={handleMouseDown}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={finishDragging}
+          onPointerCancel={finishDragging}
+          onLostPointerCapture={
+            handleLostPointerCapture
+          }
         >
           <Node
             simulationState={simulationState}
             datasetPartition={datasetPartition}
             observedClientIds={observedClientIds}
-            setObservedClientIds={setObservedClientIds}
+            setObservedClientIds={
+              setObservedClientIds
+            }
           />
         </div>
 
-        {/* Simulation Control Panel */}
+        {/* Simulation control panel */}
         <SimulationEngine
           simulationState={simulationState}
           setSimulationState={setSimulationState}
