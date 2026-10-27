@@ -47,6 +47,11 @@ type Position = {
   y: number;
 };
 
+type Transform = {
+  position: Position;
+  zoom: number;
+};
+
 type DragStart = {
   pointerId: number;
   clientX: number;
@@ -54,6 +59,24 @@ type DragStart = {
   positionX: number;
   positionY: number;
 };
+
+type PinchStart = {
+  distance: number;
+  zoom: number;
+  canvasX: number;
+  canvasY: number;
+};
+
+function getDistance(a: Position, b: Position): number {
+  return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+function getMidpoint(a: Position, b: Position): Position {
+  return {
+    x: (a.x + b.x) / 2,
+    y: (a.y + b.y) / 2,
+  };
+}
 
 function Workspace() {
   const [datasetPartition, setDatasetPartition] = useState(
@@ -82,9 +105,20 @@ function Workspace() {
 
   const [isDragging, setIsDragging] = useState(false);
 
-  const dragStartRef = useRef<DragStart | null>(null);
+  // Keep the latest transform available to pointer handlers.
+  const transformRef = useRef<Transform>({
+    position: { x: 0, y: 0 },
+    zoom: 1,
+  });
 
-  const clampZoom = useCallback((value: number) => {
+  const activePointersRef = useRef<Map<number, Position>>(
+    new Map()
+  );
+
+  const dragStartRef = useRef<DragStart | null>(null);
+  const pinchStartRef = useRef<PinchStart | null>(null);
+
+  const clampZoom = useCallback((value: number): number => {
     return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, value));
   }, []);
 
@@ -95,7 +129,9 @@ function Workspace() {
     ): Position => {
       const container = containerRef.current;
 
-      if (!container) return nextPosition;
+      if (!container) {
+        return nextPosition;
+      }
 
       const { width, height } =
         container.getBoundingClientRect();
@@ -107,7 +143,7 @@ function Workspace() {
         value: number,
         viewportSize: number,
         contentSize: number
-      ) => {
+      ): number => {
         if (contentSize <= viewportSize) {
           return (viewportSize - contentSize) / 2;
         }
@@ -134,6 +170,25 @@ function Workspace() {
     []
   );
 
+  const updateTransform = useCallback(
+    (nextPosition: Position, nextZoom: number) => {
+      const safeZoom = clampZoom(nextZoom);
+      const safePosition = clampPosition(
+        nextPosition,
+        safeZoom
+      );
+
+      transformRef.current = {
+        position: safePosition,
+        zoom: safeZoom,
+      };
+
+      setPosition(safePosition);
+      setZoom(safeZoom);
+    },
+    [clampZoom, clampPosition]
+  );
+
   const recenterWorkspace = useCallback(() => {
     const container = containerRef.current;
 
@@ -142,36 +197,41 @@ function Workspace() {
     const { width, height } =
       container.getBoundingClientRect();
 
-    setZoom(1);
+    updateTransform(
+      {
+        x: (width - WORKSPACE_SIZE) / 2,
+        y: (height - WORKSPACE_SIZE) / 2,
+      },
+      1
+    );
+  }, [updateTransform]);
 
-    setPosition({
-      x: (width - WORKSPACE_SIZE) / 2,
-      y: (height - WORKSPACE_SIZE) / 2,
-    });
-  }, []);
-
-  // Center workspace on mount.
+  // Center the workspace on mount.
   useEffect(() => {
     recenterWorkspace();
   }, [recenterWorkspace]);
 
-  // Keep position valid when the viewport changes.
+  // Keep workspace inside the viewport after resizing.
   useEffect(() => {
     const container = containerRef.current;
 
     if (!container) return;
 
     const observer = new ResizeObserver(() => {
-      setPosition((previous) =>
-        clampPosition(previous, zoom)
+      const current = transformRef.current;
+
+      updateTransform(
+        current.position,
+        current.zoom
       );
     });
 
     observer.observe(container);
 
     return () => observer.disconnect();
-  }, [zoom, clampPosition]);
+  }, [updateTransform]);
 
+  // Preserve the existing zoom-at-cursor behavior.
   const zoomAtPoint = useCallback(
     (
       nextZoom: number,
@@ -183,30 +243,32 @@ function Workspace() {
       if (!container) return;
 
       const rect = container.getBoundingClientRect();
+
+      const {
+        position: currentPosition,
+        zoom: currentZoom,
+      } = transformRef.current;
+
       const newZoom = clampZoom(nextZoom);
 
       const mouseX = clientX - rect.left;
       const mouseY = clientY - rect.top;
 
-      const canvasX = (mouseX - position.x) / zoom;
-      const canvasY = (mouseY - position.y) / zoom;
+      const canvasX =
+        (mouseX - currentPosition.x) / currentZoom;
 
-      const nextPosition = {
-        x: mouseX - canvasX * newZoom,
-        y: mouseY - canvasY * newZoom,
-      };
+      const canvasY =
+        (mouseY - currentPosition.y) / currentZoom;
 
-      setZoom(newZoom);
-      setPosition(
-        clampPosition(nextPosition, newZoom)
+      updateTransform(
+        {
+          x: mouseX - canvasX * newZoom,
+          y: mouseY - canvasY * newZoom,
+        },
+        newZoom
       );
     },
-    [
-      zoom,
-      position,
-      clampZoom,
-      clampPosition,
-    ]
+    [clampZoom, updateTransform]
   );
 
   const zoomAtCenter = useCallback(
@@ -218,36 +280,102 @@ function Workspace() {
       const rect = container.getBoundingClientRect();
 
       zoomAtPoint(
-        zoom + direction * ZOOM_STEP,
+        transformRef.current.zoom +
+          direction * ZOOM_STEP,
         rect.left + rect.width / 2,
         rect.top + rect.height / 2
       );
     },
-    [zoom, zoomAtPoint]
+    [zoomAtPoint]
   );
 
   const handleWheel = (
     event: ReactWheelEvent<HTMLDivElement>
   ) => {
+    // Preserve Ctrl + scroll zoom on desktop.
     if (!event.ctrlKey) return;
 
     event.preventDefault();
     event.stopPropagation();
 
-    const direction =
-      event.deltaY < 0 ? 1 : -1;
+    const direction = event.deltaY < 0 ? 1 : -1;
 
     zoomAtPoint(
-      zoom + direction * ZOOM_STEP,
+      transformRef.current.zoom +
+        direction * ZOOM_STEP,
       event.clientX,
       event.clientY
     );
   };
 
-  // Desktop left-click and mobile single-finger drag.
+  const startDrag = (
+    pointerId: number,
+    clientX: number,
+    clientY: number
+  ) => {
+    const currentPosition =
+      transformRef.current.position;
+
+    dragStartRef.current = {
+      pointerId,
+      clientX,
+      clientY,
+      positionX: currentPosition.x,
+      positionY: currentPosition.y,
+    };
+
+    pinchStartRef.current = null;
+    setIsDragging(true);
+  };
+
+  const startPinch = () => {
+    const pointers = Array.from(
+      activePointersRef.current.values()
+    );
+
+    if (pointers.length !== 2) return;
+
+    const container = containerRef.current;
+
+    if (!container) return;
+
+    const [first, second] = pointers;
+
+    const midpoint = getMidpoint(
+      first,
+      second
+    );
+
+    const rect = container.getBoundingClientRect();
+
+    const {
+      position: currentPosition,
+      zoom: currentZoom,
+    } = transformRef.current;
+
+    const localX = midpoint.x - rect.left;
+    const localY = midpoint.y - rect.top;
+
+    pinchStartRef.current = {
+      distance: Math.max(
+        1,
+        getDistance(first, second)
+      ),
+      zoom: currentZoom,
+      canvasX:
+        (localX - currentPosition.x) / currentZoom,
+      canvasY:
+        (localY - currentPosition.y) / currentZoom,
+    };
+
+    dragStartRef.current = null;
+    setIsDragging(false);
+  };
+
   const handlePointerDown = (
     event: ReactPointerEvent<HTMLDivElement>
   ) => {
+    // Desktop dragging uses left mouse button only.
     if (
       event.pointerType === "mouse" &&
       event.button !== 0
@@ -255,12 +383,17 @@ function Workspace() {
       return;
     }
 
-    if (!event.isPrimary) return;
-    if (dragStartRef.current !== null) return;
+    // Do not mix mouse and touch gestures.
+    if (
+      activePointersRef.current.size > 0 &&
+      event.pointerType === "mouse"
+    ) {
+      return;
+    }
 
     const target = event.target as HTMLElement;
 
-    // Preserve node and control interactions.
+    // Keep buttons, nodes and modal controls interactive.
     if (
       target.closest(
         [
@@ -285,66 +418,137 @@ function Workspace() {
       return;
     }
 
+    if (activePointersRef.current.size >= 2) {
+      return;
+    }
+
     event.preventDefault();
 
-    dragStartRef.current = {
-      pointerId: event.pointerId,
-      clientX: event.clientX,
-      clientY: event.clientY,
-      positionX: position.x,
-      positionY: position.y,
-    };
+    activePointersRef.current.set(
+      event.pointerId,
+      {
+        x: event.clientX,
+        y: event.clientY,
+      }
+    );
 
     event.currentTarget.setPointerCapture(
       event.pointerId
     );
 
-    setIsDragging(true);
+    if (activePointersRef.current.size === 2) {
+      startPinch();
+      return;
+    }
+
+    startDrag(
+      event.pointerId,
+      event.clientX,
+      event.clientY
+    );
   };
 
   const handlePointerMove = (
     event: ReactPointerEvent<HTMLDivElement>
   ) => {
-    const start = dragStartRef.current;
+    const pointers = activePointersRef.current;
 
-    if (
-      !start ||
-      start.pointerId !== event.pointerId
-    ) {
+    if (!pointers.has(event.pointerId)) {
       return;
     }
 
-    const deltaX =
-      event.clientX - start.clientX;
+    pointers.set(event.pointerId, {
+      x: event.clientX,
+      y: event.clientY,
+    });
 
-    const deltaY =
-      event.clientY - start.clientY;
+    // Two-finger pinch and simultaneous pan.
+    if (
+      pointers.size === 2 &&
+      pinchStartRef.current
+    ) {
+      const [first, second] = Array.from(
+        pointers.values()
+      );
 
-    setPosition(
-      clampPosition(
+      const pinch = pinchStartRef.current;
+      const container = containerRef.current;
+
+      if (!container) return;
+
+      const rect = container.getBoundingClientRect();
+
+      const midpoint = getMidpoint(
+        first,
+        second
+      );
+
+      const distance = Math.max(
+        1,
+        getDistance(first, second)
+      );
+
+      const nextZoom = clampZoom(
+        pinch.zoom *
+          (distance / pinch.distance)
+      );
+
+      const nextPosition = {
+        x:
+          midpoint.x -
+          rect.left -
+          pinch.canvasX * nextZoom,
+        y:
+          midpoint.y -
+          rect.top -
+          pinch.canvasY * nextZoom,
+      };
+
+      updateTransform(
+        nextPosition,
+        nextZoom
+      );
+
+      return;
+    }
+
+    // Single-pointer drag (desktop or mobile).
+    if (
+      pointers.size === 1 &&
+      dragStartRef.current?.pointerId ===
+        event.pointerId
+    ) {
+      const start = dragStartRef.current;
+
+      const deltaX =
+        event.clientX - start.clientX;
+
+      const deltaY =
+        event.clientY - start.clientY;
+
+      updateTransform(
         {
           x: start.positionX + deltaX,
           y: start.positionY + deltaY,
         },
-        zoom
-      )
-    );
+        transformRef.current.zoom
+      );
+    }
   };
 
-  const finishDragging = (
+  const finishPointer = (
     event: ReactPointerEvent<HTMLDivElement>
   ) => {
-    const start = dragStartRef.current;
+    const pointers = activePointersRef.current;
 
-    if (
-      !start ||
-      start.pointerId !== event.pointerId
-    ) {
+    if (!pointers.has(event.pointerId)) {
       return;
     }
 
+    pointers.delete(event.pointerId);
+
     dragStartRef.current = null;
-    setIsDragging(false);
+    pinchStartRef.current = null;
 
     if (
       event.currentTarget.hasPointerCapture(
@@ -355,20 +559,49 @@ function Workspace() {
         event.pointerId
       );
     }
+
+    // When one finger remains after a pinch,
+    // continue smoothly as a single-finger drag.
+    if (pointers.size === 1) {
+      const [pointerId, pointer] =
+        Array.from(pointers.entries())[0];
+
+      startDrag(
+        pointerId,
+        pointer.x,
+        pointer.y
+      );
+    } else {
+      setIsDragging(false);
+    }
   };
 
   const handleLostPointerCapture = (
     event: ReactPointerEvent<HTMLDivElement>
   ) => {
-    if (
-      dragStartRef.current?.pointerId !==
-      event.pointerId
-    ) {
+    const pointers = activePointersRef.current;
+
+    if (!pointers.has(event.pointerId)) {
       return;
     }
 
+    pointers.delete(event.pointerId);
+
     dragStartRef.current = null;
-    setIsDragging(false);
+    pinchStartRef.current = null;
+
+    if (pointers.size === 1) {
+      const [pointerId, pointer] =
+        Array.from(pointers.entries())[0];
+
+      startDrag(
+        pointerId,
+        pointer.x,
+        pointer.y
+      );
+    } else {
+      setIsDragging(false);
+    }
   };
 
   return (
@@ -377,8 +610,12 @@ function Workspace() {
         ref={containerRef}
         className="container"
         onWheel={handleWheel}
+        style={{
+          touchAction: "none",
+          overscrollBehavior: "contain",
+        }}
       >
-        {/* Workspace zoom controls */}
+        {/* Workspace HUD controls */}
         <div className="hud-zoom hud-glass">
           <HudButton
             icon={Plus}
@@ -416,11 +653,13 @@ function Workspace() {
             transform: `translate(${position.x}px, ${position.y}px) scale(${zoom})`,
             transformOrigin: "top left",
             touchAction: "none",
+            userSelect: "none",
+            WebkitUserSelect: "none",
           }}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
-          onPointerUp={finishDragging}
-          onPointerCancel={finishDragging}
+          onPointerUp={finishPointer}
+          onPointerCancel={finishPointer}
           onLostPointerCapture={
             handleLostPointerCapture
           }
